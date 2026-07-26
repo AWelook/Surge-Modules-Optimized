@@ -103,3 +103,33 @@ proto = type=http-response, script-path=${protoUrl}, requires-body=true
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("preserves a Quantumult X conf extension", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "surge-conf-import-"));
+  const originalFetch = globalThis.fetch;
+  const moduleUrl =
+    "https://raw.githubusercontent.com/source/repo/main/example.conf";
+  globalThis.fetch = async () =>
+    new Response("hostname = example.com\n", { status: 200 });
+
+  try {
+    await importModule({
+      root,
+      url: moduleUrl,
+      slug: "example",
+      category: "ad",
+      repository: "AWelook/Surge-Modules-Optimized",
+    });
+    assert.equal(
+      await readFile(path.join(root, "modules/ad/example.conf"), "utf8"),
+      "hostname = example.com\n",
+    );
+    assert.equal(
+      await readFile(path.join(root, "upstream/ad/example/module.conf"), "utf8"),
+      "hostname = example.com\n",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(root, { recursive: true, force: true });
+  }
+});

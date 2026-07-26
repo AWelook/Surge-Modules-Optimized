@@ -5,7 +5,7 @@ Surge 模块与脚本的统一低内存优化仓库。
 现有根目录下的 `Spotify.sgmodule` 和 `Spotify.Crack.js` 为兼容旧链接保留，不会移动。后续项目统一存放：
 
 ```text
-modules/<category>/<slug>.sgmodule
+modules/<category>/<slug>.(sgmodule|module|conf|lpx)
 scripts/<category>/<slug>/*.js
 upstream/<category>/<slug>/
 registry.json
@@ -14,7 +14,7 @@ registry.json
 ## 工作方式
 
 1. 在 GitHub 仓库的 **Actions → Import upstream module → Run workflow** 中填写：
-   - `module_url`：上游 `.sgmodule` 或 `.module` Raw 链接
+   - `module_url`：上游 `.sgmodule`、`.module`、`.conf` 或 `.lpx` Raw 链接
    - `slug`：项目短名称，例如 `tieba`
    - `category`：分类，例如 `ad`
 2. 工作流拉取模块及其中的远程 JavaScript，保存一份不可混淆的上游快照。
@@ -36,4 +36,3 @@ npm test
 ```
 
 如确实需要用上游内容重置发布副本，可额外传入 `--overwrite-optimized`。该选项默认关闭，日常同步不会覆盖优化成果。
-

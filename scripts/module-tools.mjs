@@ -9,6 +9,12 @@ const ALLOWED_REMOTE_HOSTS = new Set([
 ]);
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const SUPPORTED_MODULE_EXTENSIONS = new Set([
+  ".conf",
+  ".lpx",
+  ".module",
+  ".sgmodule",
+]);
 
 export function parseArguments(argv) {
   const result = Object.create(null);
@@ -73,14 +79,24 @@ export async function importModule({
   const moduleText = await fetchText(url, "module");
   const scriptUrls = discoverScriptUrls(moduleText);
   const mappings = createScriptMappings(scriptUrls);
+  const moduleExtension = detectModuleExtension(url);
   const upstreamDirectory = path.join(root, "upstream", category, slug);
-  const publishedModulePath = path.join(root, "modules", category, `${slug}.sgmodule`);
+  const upstreamModulePath = path.join(
+    upstreamDirectory,
+    `module${moduleExtension}`,
+  );
+  const publishedModulePath = path.join(
+    root,
+    "modules",
+    category,
+    `${slug}${moduleExtension}`,
+  );
   const publishedScriptsDirectory = path.join(root, "scripts", category, slug);
 
   await mkdir(upstreamDirectory, { recursive: true });
   await mkdir(path.dirname(publishedModulePath), { recursive: true });
   await mkdir(publishedScriptsDirectory, { recursive: true });
-  await writeIfChanged(path.join(upstreamDirectory, "module.sgmodule"), moduleText);
+  await writeIfChanged(upstreamModulePath, moduleText);
 
   const downloadedScripts = [];
   for (const mapping of mappings) {
@@ -120,6 +136,8 @@ export async function importModule({
     slug,
     category,
     moduleUrl: url,
+    moduleFile: relativePath(root, publishedModulePath),
+    upstreamFile: relativePath(root, upstreamModulePath),
     scripts: mappings,
   };
   const existingIndex = registry.findIndex(
@@ -269,4 +287,13 @@ function validateName(value, label) {
 
 function toCamelCase(value) {
   return value.replace(/-([a-z])/gu, (_, letter) => letter.toUpperCase());
+}
+
+function detectModuleExtension(url) {
+  const extension = path.posix.extname(new URL(url).pathname).toLowerCase();
+  return SUPPORTED_MODULE_EXTENSIONS.has(extension) ? extension : ".sgmodule";
+}
+
+function relativePath(root, filePath) {
+  return path.relative(root, filePath).split(path.sep).join("/");
 }

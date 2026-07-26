@@ -54,8 +54,16 @@ for (const entry of registry) {
   }
   identities.add(identity);
   for (const requiredPath of [
-    path.join(root, "upstream", entry.category, entry.slug, "module.sgmodule"),
-    path.join(root, "modules", entry.category, `${entry.slug}.sgmodule`),
+    path.join(
+      root,
+      ...(entry.upstreamFile ??
+        `upstream/${entry.category}/${entry.slug}/module.sgmodule`).split("/"),
+    ),
+    path.join(
+      root,
+      ...(entry.moduleFile ??
+        `modules/${entry.category}/${entry.slug}.sgmodule`).split("/"),
+    ),
   ]) {
     if (!files.includes(requiredPath)) {
       failures.push(`registry.json: ${identity} is missing ${relative(requiredPath)}`);
@@ -93,4 +101,3 @@ async function walk(directory) {
 function relative(filePath) {
   return path.relative(root, filePath).split(path.sep).join("/");
 }
-
