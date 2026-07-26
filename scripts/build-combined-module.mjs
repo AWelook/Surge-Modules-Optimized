@@ -18,6 +18,7 @@ export const COMBINED_SOURCES = [
     label: "高德地图",
     file: "modules/ad/amap-ads.sgmodule",
     scriptAliases: { amap: "amap_response" },
+    excludedScriptNames: ["amdc"],
   },
   {
     id: "coolapk",
@@ -33,6 +34,7 @@ export const COMBINED_SOURCES = [
     id: "goofish",
     label: "闲鱼",
     file: "modules/ad/goofish-ads.sgmodule",
+    excludedScriptNames: ["amdc"],
   },
   {
     id: "pinduoduo",
@@ -58,6 +60,10 @@ const HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized
 `;
 
+const SHARED_AMDC_SCRIPT_BLOCK = String.raw`# > ===== 高德地图 / 闲鱼共享 =====
+# > 合并重叠的 AMDC 处理，避免同一响应执行两个脚本
+combined_amdc = type=http-response, pattern="^http:\/\/(?:amdc\.m\.taobao\.com|[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+){1,4}(?::\d+)?\/amdc\/mobileDispatch)", script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/goofish-ads/amdc.js, requires-body=true, max-size=-1, timeout=60`;
+
 export function buildCombinedModule(sourceTexts) {
   const parsedSources = COMBINED_SOURCES.map((source) => {
     const text = sourceTexts.get(source.file);
@@ -75,12 +81,20 @@ export function buildCombinedModule(sourceTexts) {
       if (!content) {
         continue;
       }
+      const transformedContent =
+        sectionName === "Script"
+          ? namespaceScriptNames(content, source)
+          : content;
+      if (!transformedContent) {
+        continue;
+      }
       blocks.push(
         `# > ===== ${source.label} =====\n` +
-          (sectionName === "Script"
-            ? namespaceScriptNames(content, source)
-            : content),
+          transformedContent,
       );
+    }
+    if (sectionName === "Script") {
+      blocks.push(SHARED_AMDC_SCRIPT_BLOCK);
     }
     if (blocks.length) {
       outputSections.push(`[${sectionName}]\n${blocks.join("\n\n")}`);
@@ -159,23 +173,34 @@ export function extractMitmHostnames(content) {
 
 function namespaceScriptNames(content, source) {
   return content
-    .split("\n")
-    .map((line) => {
-      if (!line.trim() || line.trimStart().startsWith("#")) {
-        return line;
+    .split(/\n\s*\n/u)
+    .map((block) => {
+      const lines = block.split("\n");
+      const scriptLineIndex = lines.findIndex(
+        (line) => line.trim() && !line.trimStart().startsWith("#"),
+      );
+      if (scriptLineIndex === -1) {
+        return block;
       }
+      const line = lines[scriptLineIndex];
       const match = line.match(/^(\s*)([^=]+?)(\s*=\s*)(.+)$/u);
       if (!match) {
         throw new Error(`Unsupported Script line in ${source.file}: ${line}`);
       }
       const originalName = match[2].trim();
+      if (source.excludedScriptNames?.includes(originalName)) {
+        return "";
+      }
       const fallbackName =
         `${source.id}_${originalName}`.replace(/[^A-Za-z0-9_-]/gu, "_");
       const combinedName =
         source.scriptAliases?.[originalName] ?? fallbackName;
-      return `${match[1]}${combinedName}${match[3]}${match[4]}`;
+      lines[scriptLineIndex] =
+        `${match[1]}${combinedName}${match[3]}${match[4]}`;
+      return lines.join("\n");
     })
-    .join("\n");
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function trimBlankLines(lines) {
