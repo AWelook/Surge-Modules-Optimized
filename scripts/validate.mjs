@@ -17,7 +17,8 @@ const publishedScripts = files.filter(
 const publishedModules = files.filter(
   (filePath) =>
     /\.(?:sgmodule|module)$/u.test(filePath) &&
-    !filePath.startsWith(path.join(root, "upstream") + path.sep),
+    !filePath.startsWith(path.join(root, "upstream") + path.sep) &&
+    !filePath.startsWith(path.join(root, "converted") + path.sep),
 );
 
 for (const scriptPath of publishedScripts) {
@@ -40,6 +41,17 @@ for (const publishedPath of [...publishedModules, ...publishedScripts]) {
     if (!files.includes(localPath)) {
       failures.push(
         `${relative(publishedPath)}: referenced script is missing: ${match[1]}`,
+      );
+    }
+  }
+}
+
+for (const modulePath of publishedModules) {
+  const moduleText = await readFile(modulePath, "utf8");
+  for (const line of moduleText.split(/\r?\n/u)) {
+    if (/^IP-CIDR6?,/u.test(line) && !/,no-resolve(?:,|$)/u.test(line)) {
+      failures.push(
+        `${relative(modulePath)}: IP rule is missing no-resolve: ${line}`,
       );
     }
   }

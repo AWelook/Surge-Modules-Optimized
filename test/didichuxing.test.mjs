@@ -25,9 +25,20 @@ test("keeps the exact Script Hub 1.14.14 conversion baseline", () => {
   assert.doesNotMatch(convertedText, /^\[Script\]$/mu);
 });
 
-test("published module preserves every non-JQ conversion section", () => {
-  for (const name of ["Rule", "Map Local", "MITM"]) {
+test("published module preserves non-JQ behavior and disables IP resolution", () => {
+  for (const name of ["Map Local", "MITM"]) {
     assert.equal(section(moduleText, name), section(convertedText, name));
+  }
+  assert.deepEqual(
+    ruleLines(moduleText).map((line) => line.replace(/,no-resolve$/u, "")),
+    ruleLines(convertedText),
+  );
+  const ipRules = ruleLines(moduleText).filter((line) =>
+    line.startsWith("IP-CIDR,"),
+  );
+  assert.equal(ipRules.length, 15);
+  for (const line of ipRules) {
+    assert.match(line, /,no-resolve$/u);
   }
   assert.doesNotMatch(moduleText, /script-path\s*=/u);
   for (const line of mapLocalLines(moduleText)) {
