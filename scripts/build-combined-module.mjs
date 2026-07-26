@@ -20,6 +20,11 @@ export const COMBINED_SOURCES = [
     scriptAliases: { amap: "amap_response" },
   },
   {
+    id: "coolapk",
+    label: "酷安",
+    file: "modules/ad/coolapk-ads.sgmodule",
+  },
+  {
     id: "didi",
     label: "滴滴出行",
     file: "modules/ad/didichuxing.sgmodule",
@@ -40,7 +45,7 @@ const SECTION_ORDER = [
 ];
 
 const HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、滴滴出行和闲鱼去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行和闲鱼去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized
 `;

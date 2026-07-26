@@ -45,6 +45,14 @@
     ]
   },
   {
+    "slug": "coolapk-ads",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/%E9%85%B7%E5%AE%89%E5%8E%BB%E5%B9%BF%E5%91%8A.beta.sgmodule",
+    "moduleFile": "modules/ad/coolapk-ads.sgmodule",
+    "upstreamFile": "upstream/ad/coolapk-ads/module.sgmodule",
+    "scripts": []
+  },
+  {
     "slug": "didichuxing",
     "category": "ad",
     "moduleUrl": "https://raw.githubusercontent.com/ZenmoFeiShi/Qx/main/Didichuxing.snippet",
