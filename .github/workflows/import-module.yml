@@ -38,10 +38,10 @@ jobs:
       MODULE_CATEGORY: ${{ inputs.category }}
       OVERWRITE_OPTIMIZED: ${{ inputs.overwrite_optimized }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Import module and referenced scripts
         shell: bash
@@ -71,4 +71,3 @@ jobs:
           git add --all
           git commit -m "Import upstream module: ${MODULE_CATEGORY}/${MODULE_SLUG}"
           git push
-
