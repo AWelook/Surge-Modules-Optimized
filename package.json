@@ -1,0 +1,15 @@
+{
+  "name": "surge-modules-optimized",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import": "node scripts/import-module.mjs",
+    "sync": "node scripts/sync-upstreams.mjs",
+    "validate": "node scripts/validate.mjs",
+    "test": "node --test && npm run validate"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

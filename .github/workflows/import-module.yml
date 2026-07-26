@@ -1,0 +1,74 @@
+name: Import upstream module
+
+on:
+  workflow_dispatch:
+    inputs:
+      module_url:
+        description: Raw GitHub URL of the upstream module
+        required: true
+        type: string
+      slug:
+        description: Lowercase project name, for example tieba
+        required: true
+        type: string
+      category:
+        description: Lowercase category, for example ad
+        required: true
+        default: ad
+        type: string
+      overwrite_optimized:
+        description: Replace published files with upstream content
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-upstream-module
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    env:
+      MODULE_URL: ${{ inputs.module_url }}
+      MODULE_SLUG: ${{ inputs.slug }}
+      MODULE_CATEGORY: ${{ inputs.category }}
+      OVERWRITE_OPTIMIZED: ${{ inputs.overwrite_optimized }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Import module and referenced scripts
+        shell: bash
+        run: |
+          arguments=(
+            --url "$MODULE_URL"
+            --slug "$MODULE_SLUG"
+            --category "$MODULE_CATEGORY"
+          )
+          if [[ "$OVERWRITE_OPTIMIZED" == "true" ]]; then
+            arguments+=(--overwrite-optimized)
+          fi
+          node scripts/import-module.mjs "${arguments[@]}"
+
+      - name: Validate published files
+        run: npm test
+
+      - name: Commit imported files
+        shell: bash
+        run: |
+          if git diff --quiet --exit-code && [[ -z "$(git status --porcelain)" ]]; then
+            echo "No upstream changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Import upstream module: ${MODULE_CATEGORY}/${MODULE_SLUG}"
+          git push
+

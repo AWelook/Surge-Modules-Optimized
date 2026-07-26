@@ -1,0 +1,41 @@
+name: Sync upstream snapshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-snapshots
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download registered upstream files
+        run: npm run sync
+
+      - name: Validate published files
+        run: npm test
+
+      - name: Commit snapshot changes
+        shell: bash
+        run: |
+          if git diff --quiet --exit-code && [[ -z "$(git status --porcelain)" ]]; then
+            echo "All upstream snapshots are current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add upstream registry.json
+          git commit -m "Sync upstream snapshots"
+          git push
