@@ -25,6 +25,9 @@ for (const entry of registry) {
     repository,
     branch,
     overwriteOptimized: false,
+    publishedModuleFile: entry.moduleFile,
+    upstreamModuleFile: entry.upstreamFile,
+    conversion: entry.conversion,
   });
   console.log(
     `Synced ${result.category}/${result.slug}: ${result.scriptCount} script(s)`,
@@ -32,4 +35,3 @@ for (const entry of registry) {
 }
 
 console.log(`Upstream sync complete: ${registry.length} project(s)`);
-

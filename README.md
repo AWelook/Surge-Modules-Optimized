@@ -8,6 +8,7 @@ Surge 模块与脚本的统一低内存优化仓库。
 modules/<category>/<slug>.(sgmodule|module|conf|lpx)
 scripts/<category>/<slug>/*.js
 upstream/<category>/<slug>/
+converted/<category>/<slug>/
 registry.json
 ```
 
@@ -18,9 +19,10 @@ registry.json
    - `slug`：项目短名称，例如 `tieba`
    - `category`：分类，例如 `ad`
 2. 工作流拉取模块及其中的远程 JavaScript，保存一份不可混淆的上游快照。
-3. 首次导入时生成发布副本，并把模块中的 `script-path` 改为本仓库 Raw 链接。
-4. 在 `modules/` 和 `scripts/` 中完成经过验证的性能优化；`upstream/` 永远保留对照版本。
-5. `Sync upstream snapshots` 工作流每天检查上游变化，只更新快照，不覆盖优化版本。
+3. 如果来源不是 Surge 模块，先使用 Script Hub 转换为 Surge，并把未经优化的转换结果保存到 `converted/`。
+4. 首次导入时生成发布副本，并把模块中的 `script-path` 改为本仓库 Raw 链接。
+5. 在 `modules/` 和 `scripts/` 中完成经过验证的性能优化；`upstream/` 与 `converted/` 永远保留对照版本。
+6. `Sync upstream snapshots` 工作流每天检查上游变化，只更新原格式快照，不覆盖转换后的优化版本。
 
 自动化负责导入、链接改写、上游同步、语法检查和提交。涉及业务字段、Protobuf 或异常策略的性能优化必须经过代码审核和功能测试，不能用自动压缩替代。
 

@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -128,6 +134,46 @@ test("preserves a Quantumult X conf extension", async () => {
       await readFile(path.join(root, "upstream/ad/example/module.conf"), "utf8"),
       "hostname = example.com\n",
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("sync preserves registered converted module paths and metadata", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "surge-converted-sync-"));
+  const originalFetch = globalThis.fetch;
+  const moduleUrl =
+    "https://raw.githubusercontent.com/source/repo/main/example.conf";
+  const optimizedPath = path.join(root, "modules/ad/example.sgmodule");
+  const conversion = {
+    provider: "Script Hub",
+    sourceType: "qx-rewrite",
+    targetType: "surge-module",
+    snapshot: "converted/ad/example/script-hub.sgmodule",
+  };
+  globalThis.fetch = async () =>
+    new Response("hostname = example.com\n", { status: 200 });
+
+  try {
+    await mkdir(path.dirname(optimizedPath), { recursive: true });
+    await writeFile(optimizedPath, "#!name=optimized\n", "utf8");
+    await importModule({
+      root,
+      url: moduleUrl,
+      slug: "example",
+      category: "ad",
+      repository: "AWelook/Surge-Modules-Optimized",
+      publishedModuleFile: "modules/ad/example.sgmodule",
+      upstreamModuleFile: "upstream/ad/example/module.conf",
+      conversion,
+    });
+    assert.equal(await readFile(optimizedPath, "utf8"), "#!name=optimized\n");
+    const registry = JSON.parse(
+      await readFile(path.join(root, "registry.json"), "utf8"),
+    );
+    assert.equal(registry[0].moduleFile, "modules/ad/example.sgmodule");
+    assert.deepEqual(registry[0].conversion, conversion);
   } finally {
     globalThis.fetch = originalFetch;
     await rm(root, { recursive: true, force: true });

@@ -67,6 +67,9 @@ export async function importModule({
   repository,
   branch = "main",
   overwriteOptimized = false,
+  publishedModuleFile,
+  upstreamModuleFile,
+  conversion,
 }) {
   validateName(slug, "slug");
   validateName(category, "category");
@@ -81,15 +84,15 @@ export async function importModule({
   const mappings = createScriptMappings(scriptUrls);
   const moduleExtension = detectModuleExtension(url);
   const upstreamDirectory = path.join(root, "upstream", category, slug);
-  const upstreamModulePath = path.join(
-    upstreamDirectory,
-    `module${moduleExtension}`,
-  );
-  const publishedModulePath = path.join(
+  const upstreamModulePath = resolveManagedPath(
     root,
-    "modules",
-    category,
-    `${slug}${moduleExtension}`,
+    upstreamModuleFile,
+    path.join(upstreamDirectory, `module${moduleExtension}`),
+  );
+  const publishedModulePath = resolveManagedPath(
+    root,
+    publishedModuleFile,
+    path.join(root, "modules", category, `${slug}${moduleExtension}`),
   );
   const publishedScriptsDirectory = path.join(root, "scripts", category, slug);
 
@@ -109,6 +112,11 @@ export async function importModule({
   }
 
   const moduleExists = await fileExists(publishedModulePath);
+  if (!moduleExists && conversion && !overwriteOptimized) {
+    throw new Error(
+      `Converted module is missing and cannot be rebuilt from the source format: ${relativePath(root, publishedModulePath)}`,
+    );
+  }
   if (!moduleExists || overwriteOptimized) {
     let publishedModule = moduleText;
     for (const mapping of mappings) {
@@ -138,6 +146,7 @@ export async function importModule({
     moduleUrl: url,
     moduleFile: relativePath(root, publishedModulePath),
     upstreamFile: relativePath(root, upstreamModulePath),
+    ...(conversion ? { conversion } : {}),
     scripts: mappings,
   };
   const existingIndex = registry.findIndex(
@@ -296,4 +305,19 @@ function detectModuleExtension(url) {
 
 function relativePath(root, filePath) {
   return path.relative(root, filePath).split(path.sep).join("/");
+}
+
+function resolveManagedPath(root, configuredPath, fallbackPath) {
+  if (!configuredPath) {
+    return fallbackPath;
+  }
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(root, configuredPath);
+  if (
+    resolvedPath !== resolvedRoot &&
+    !resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)
+  ) {
+    throw new Error(`Managed path must stay inside the repository: ${configuredPath}`);
+  }
+  return resolvedPath;
 }

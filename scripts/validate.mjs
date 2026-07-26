@@ -53,7 +53,7 @@ for (const entry of registry) {
     failures.push(`registry.json: duplicate project ${identity}`);
   }
   identities.add(identity);
-  for (const requiredPath of [
+  const requiredPaths = [
     path.join(
       root,
       ...(entry.upstreamFile ??
@@ -64,7 +64,13 @@ for (const entry of registry) {
       ...(entry.moduleFile ??
         `modules/${entry.category}/${entry.slug}.sgmodule`).split("/"),
     ),
-  ]) {
+  ];
+  if (entry.conversion?.snapshot) {
+    requiredPaths.push(
+      path.join(root, ...entry.conversion.snapshot.split("/")),
+    );
+  }
+  for (const requiredPath of requiredPaths) {
     if (!files.includes(requiredPath)) {
       failures.push(`registry.json: ${identity} is missing ${relative(requiredPath)}`);
     }
