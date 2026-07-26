@@ -89,7 +89,7 @@ jobs:
             {
               echo "检测到登记项目 \`${project}\` 的上游模块或脚本发生变化。"
               echo
-              echo "请按以下流程处理：识别来源格式 → 必要时用 Script Hub 转换 → 差异分析 → 保功能优化 → 测试 → 更新发布文件。"
+              echo "请按以下流程处理：识别来源格式 → 必要时用 Script Hub 转换 → 差异分析 → 保功能优化 → 若属于合集来源则重建合集 → 测试 → 更新发布文件。"
               echo
               echo '```text'
               grep -F "upstream/${project}/" "${RUNNER_TEMP}/upstream-changes.txt" || true

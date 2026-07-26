@@ -21,10 +21,23 @@ const combinedText = await readFile(
   new URL(`../${COMBINED_MODULE_PATH}`, import.meta.url),
   "utf8",
 );
+const registry = JSON.parse(
+  await readFile(new URL("../registry.json", import.meta.url), "utf8"),
+);
 const combinedSections = parseSections(combinedText);
 
 test("combined module is generated exactly from all standalone ad modules", () => {
   assert.equal(combinedText, buildCombinedModule(sourceTexts));
+});
+
+test("every combined source is a registered published module", () => {
+  const publishedModules = new Set(registry.map(({ moduleFile }) => moduleFile));
+  for (const source of COMBINED_SOURCES) {
+    assert.ok(
+      publishedModules.has(source.file),
+      `${source.file} must remain registered for upstream tracking`,
+    );
+  }
 });
 
 test("combined module explicitly excludes Spotify and NetEase Music", () => {

@@ -56,6 +56,9 @@ jobs:
           fi
           node scripts/import-module.mjs "${arguments[@]}"
 
+      - name: Rebuild derived combined module
+        run: npm run build:combined
+
       - name: Validate published files
         run: npm test
 
