@@ -3,10 +3,11 @@ name: Sync upstream snapshots
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 3 */2 * *"
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: sync-upstream-snapshots
@@ -24,18 +25,81 @@ jobs:
       - name: Download registered upstream files
         run: npm run sync
 
+      - name: Detect upstream changes
+        id: changes
+        shell: bash
+        run: |
+          change_file="${RUNNER_TEMP}/upstream-changes.txt"
+          if git diff --quiet --exit-code && [[ -z "$(git status --porcelain)" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            : > "$change_file"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              git status --short
+              git diff --stat
+            } > "$change_file"
+          fi
+
       - name: Validate published files
         run: npm test
 
       - name: Commit snapshot changes
+        if: steps.changes.outputs.changed == 'true'
         shell: bash
         run: |
-          if git diff --quiet --exit-code && [[ -z "$(git status --porcelain)" ]]; then
-            echo "All upstream snapshots are current."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add upstream registry.json
           git commit -m "Sync upstream snapshots"
           git push
+
+      - name: Open or update upstream optimization issue
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          label="upstream-update"
+          title="上游更新待重新转换与优化"
+          body_file="${RUNNER_TEMP}/upstream-issue.md"
+          {
+            echo "检测到登记的上游模块或脚本发生变化。"
+            echo
+            echo "请按以下流程处理：Script Hub 转换 → 差异分析 → 保功能优化 → 测试 → 更新发布文件。"
+            echo
+            echo '```text'
+            cat "${RUNNER_TEMP}/upstream-changes.txt"
+            echo '```'
+            echo
+            echo "同步提交：$(git rev-parse HEAD)"
+            echo "工作流：https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > "$body_file"
+
+          gh label create "$label" \
+            --repo "$GITHUB_REPOSITORY" \
+            --color D93F0B \
+            --description "上游已变化，等待重新转换、审核和优化" \
+            --force
+
+          issue_number="$(
+            gh issue list \
+              --repo "$GITHUB_REPOSITORY" \
+              --state open \
+              --label "$label" \
+              --limit 1 \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [[ -n "$issue_number" ]]; then
+            gh issue comment "$issue_number" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body-file "$body_file"
+          else
+            gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$title" \
+              --label "$label" \
+              --body-file "$body_file"
+          fi
