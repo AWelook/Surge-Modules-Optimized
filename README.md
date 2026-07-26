@@ -15,7 +15,7 @@ registry.json
 ## 工作方式
 
 1. 在 GitHub 仓库的 **Actions → Import upstream module → Run workflow** 中填写：
-   - `module_url`：上游 `.sgmodule`、`.module`、`.conf` 或 `.lpx` Raw 链接
+   - `module_url`：上游 `.sgmodule`、`.module`、`.conf`、`.lpx` 或 `.snippet` Raw 链接
    - `slug`：项目短名称，例如 `tieba`
    - `category`：分类，例如 `ad`
 2. 工作流拉取模块及其中的远程 JavaScript，保存一份不可混淆的上游快照。

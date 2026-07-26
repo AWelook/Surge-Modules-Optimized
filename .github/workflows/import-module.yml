@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       module_url:
-        description: Raw GitHub URL of the upstream module
+        description: Raw GitHub URL of the upstream module or rewrite snippet
         required: true
         type: string
       slug:

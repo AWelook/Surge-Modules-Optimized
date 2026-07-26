@@ -14,6 +14,7 @@ const SUPPORTED_MODULE_EXTENSIONS = new Set([
   ".lpx",
   ".module",
   ".sgmodule",
+  ".snippet",
 ]);
 
 export function parseArguments(argv) {

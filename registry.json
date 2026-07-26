@@ -1,5 +1,20 @@
 [
   {
+    "slug": "didichuxing",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/ZenmoFeiShi/Qx/main/Didichuxing.snippet",
+    "moduleFile": "modules/ad/didichuxing.sgmodule",
+    "upstreamFile": "upstream/ad/didichuxing/module.snippet",
+    "conversion": {
+      "provider": "Script Hub",
+      "version": "1.14.14",
+      "sourceType": "qx-rewrite",
+      "targetType": "surge-module",
+      "snapshot": "converted/ad/didichuxing/script-hub.sgmodule"
+    },
+    "scripts": []
+  },
+  {
     "slug": "goofish-ads",
     "category": "ad",
     "moduleUrl": "https://raw.githubusercontent.com/ddgksf2013/Rewrite/refs/heads/master/AdBlock/GoofishAds.conf",
