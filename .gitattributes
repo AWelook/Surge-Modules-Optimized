@@ -1,0 +1,3 @@
+# Upstream and converter snapshots must remain byte-for-byte exact.
+upstream/** -whitespace
+converted/** -whitespace

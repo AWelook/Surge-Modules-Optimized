@@ -1,5 +1,29 @@
 [
   {
+    "slug": "amap-ads",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/ddgksf2013/Rewrite/master/AdBlock/AmapAds.conf",
+    "moduleFile": "modules/ad/amap-ads.sgmodule",
+    "upstreamFile": "upstream/ad/amap-ads/module.conf",
+    "conversion": {
+      "provider": "Script Hub",
+      "version": "1.14.14",
+      "sourceType": "qx-rewrite",
+      "targetType": "surge-module",
+      "snapshot": "converted/ad/amap-ads/script-hub.sgmodule"
+    },
+    "scripts": [
+      {
+        "url": "https://raw.githubusercontent.com/ddgksf2013/Scripts/refs/heads/master/amdc.js",
+        "fileName": "amdc.js"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/ddgksf2013/Scripts/refs/heads/master/amap.js",
+        "fileName": "amap.js"
+      }
+    ]
+  },
+  {
     "slug": "didichuxing",
     "category": "ad",
     "moduleUrl": "https://raw.githubusercontent.com/ZenmoFeiShi/Qx/main/Didichuxing.snippet",
