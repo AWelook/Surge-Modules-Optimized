@@ -3,13 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:combined": "node scripts/build-combined-module.mjs",
+    "check:combined": "node scripts/build-combined-module.mjs --check",
     "import": "node scripts/import-module.mjs",
     "sync": "node scripts/sync-upstreams.mjs",
     "validate": "node scripts/validate.mjs",
-    "test": "node --test && npm run validate"
+    "test": "node --test && npm run validate && npm run check:combined"
   },
   "engines": {
     "node": ">=20"
   }
 }
-

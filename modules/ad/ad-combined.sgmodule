@@ -1,0 +1,148 @@
+#!name=去广告合集（不含 Spotify 与网易云）
+#!desc=合并 12306、高德地图、滴滴出行和闲鱼去广告；请勿与对应单独版同时启用
+#!author=原规则作者与 AWelook
+#!homepage=https://github.com/AWelook/Surge-Modules-Optimized
+
+[Rule]
+# > ===== 12306 =====
+DOMAIN,ad.12306.cn,DIRECT
+
+# > ===== 高德地图 =====
+DOMAIN-SUFFIX,optimus-ads.amap.com,DIRECT
+
+# > ===== 滴滴出行 =====
+DOMAIN,gwp.xiaojukeji.com,REJECT
+IP-CIDR,139.199.244.6/32,REJECT
+IP-CIDR,113.46.225.9/32,REJECT
+IP-CIDR,139.199.244.7/32,REJECT
+IP-CIDR,113.46.225.8/32,REJECT
+IP-CIDR,123.207.209.39/32,REJECT
+IP-CIDR,123.207.209.60/32,REJECT
+IP-CIDR,139.199.240.15/32,REJECT
+IP-CIDR,139.199.240.12/32,REJECT
+IP-CIDR,116.85.3.37/32,REJECT
+IP-CIDR,162.14.157.2/32,REJECT
+IP-CIDR,162.14.157.24/32,REJECT
+IP-CIDR,116.85.1.0/32,REJECT
+IP-CIDR,116.85.1.17/32,REJECT
+IP-CIDR,116.85.1.22/32,REJECT
+IP-CIDR,116.85.3.25/32,REJECT
+
+# > ===== 闲鱼 =====
+DOMAIN-SUFFIX,iyes.youku.com,REJECT
+
+[URL Rewrite]
+# > ===== 高德地图 =====
+# > 高德地图_通用广告请求@ddgksf2013
+^https?:\/\/.*\.amap\.com\/ws\/asa\/ads_attribution - reject
+
+[Body Rewrite]
+# > ===== 滴滴出行 =====
+http-response-jq ^https:\/\/common\.diditaxi\.com\.cn\/common\/v[5-9]\/usercenter\/layout '.data.layout.order |= map(select(. == "center_base_info_card" or . == "center_order_related_card" or . == "center_wallet_finance_card")) | (.data.instances.center_wallet_finance_card.data.view_info |= map(select(.title == "优惠卡券"))) | del(.data.instances.center_marketing_card, .data.instances.center_member_card, .data.instances.center_tool_card, .data.instances.center_widget_list)'
+http-response-jq ^https:\/\/common\.diditaxi\.com\.cn\/common\/v\d\/usercenter\/me '.data.cards |= map(select(.title != "天天领福利" and .title != "金融服务" and .title != "更多服务" and .title != "企业服务" and .title != "安全中心") | if .tag == "wallet" then (.items |= map(select(.title == "优惠券"))) | (if .card_type == 4 then .bottom_items |= map(select(.title == "省钱套餐" or .title == "出行里程")) else . end) else . end)'
+http-response-jq ^https:\/\/conf\.diditaxi\.com\.cn\/homepage\/v\d\/core '.data.order_cards.nav_list_card.data |= map(select(.nav_id == "dache_anycar" or .nav_id == "driverservice" or .nav_id == "bike" or .nav_id == "carmate" or .nav_id == "nav_more_v3")) | .data.disorder_cards.bottom_nav_list.data |= map(select(.id == "v6x_home" or .id == "home_page" or .id == "user_center")) | .data.disorder_cards.top_nav_list.data.top_nav_info |= map(select(.name != "旅行" and .name != "车主"))'
+http-response-jq ^https:\/\/api\.udache\.com\/gulfstream\/pre-sale\/v1\/other\/pGetSceneList '.data.scene_list |= map(select(.text != "优惠商城")) | .data.show_data |= map(.scene_ids |= map(select(. != "scene_coupon_mall")))'
+http-response-jq ^https:\/\/conf\.diditaxi\.com\.cn\/homepage\/v1\/oversea\/layout 'del(.data.instances.oversea_main_banner)'
+http-response-jq ^https:\/\/api\.udache\.com\/gulfstream\/porsche\/v1\/dache_homepage_layout 'del(.data.instances["xp-card-01"])'
+http-response-jq ^https:\/\/api\.udache\.com\/gulfstream\/passenger-center\/v2\/other\/pInTripLayout 'del(.data.order_components[8].data) | .data.order_components |= map(select(.name != "passenger_common_casper"))'
+http-response-jq ^https:\/\/mapi\.xiaojukeji\.com\/passenger-wallet\/api\/v[\d.]+\/wallet\/homepage '.data.cardList |= map(select(.mcode == "index_assets_v6") | .detailData |= (del(.myCreditLimit) | .discountList |= .[:3] | del(.noticeList)))'
+http-response-jq ^https:\/\/manhattan\.webapp\.xiaojukeji\.com\/zootopia\/api\/my-assets\/get-assets-data 'del(.data.myQuotaModularRes, .data.assetsData.myQuotaModularRes, .data.banner, .data.assetsData.banner, .data.myGuaranteeModularRes, .data.assetsData.myGuaranteeModularRes)'
+http-response-jq ^https:\/\/manhattan\.webapp\.xiaojukeji\.com\/zootopia\/api\/my-assets\/module-is-show '.data = []'
+http-response-jq ^https:\/\/ddpay\.xiaojukeji\.com\/ddpay\/api\/manhattan-small-change\/get-all-config '.data.result = []'
+http-response-jq ^https:\/\/ddpay\.xiaojukeji\.com\/ddpay\/api\/manhattan-small-change\/get-apollo-config '.data.result.hideList = []'
+
+# > ===== 闲鱼 =====
+# > 首页右下角悬浮球
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.user\.strategy\.list(?:\/|\?|$) '.data.strategies = [{}]'
+# > 首页顶部 Tab
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.home\.circle\.list(?:\/|\?|$) 'if (.data.circleList? | type) == "array" then .data.circleList |= map(select(.bizCode? != "saveMoney")) else . end'
+# > 首页信息流
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlehome\.home\.nextfresh(?:\/|\?|$) 'if (.data.homeTopList? | type) == "array" then .data.homeTopList |= .[0:1] else . end | if (.data.sections? | type) == "array" then .data.sections |= map(select(.data.bizType? == "item")) else . end'
+# > 搜索填词
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search\.shade(?:\/|\?|$) '.data.singleShadeWords = [{}]'
+# > 猜你可能找
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.item\.search\.activate(?:\/|\?|$) '.data.cardList = [{}]'
+# > 搜索发现
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search\.discover(?:\/|\?|$) 'del(.data.resultList)'
+# > 我的页面
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.idle\.user\.page\.my\.adapter(?:\/|\?|$) '.data.ability = [] | if (.data.container.sections? | type) == "array" then .data.container.sections |= map(select((.sectionBizCode? | type) == "string" and (.sectionBizCode | test("head|user|trade")))) else . end'
+# > 我的页面信息流
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.item\.buy\.feeds(?:\/|\?|$) 'del(.data.sections)'
+# > 本地信息流广告
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.local\.home(?:\/|\?|$) 'if (.data.sections? | type) == "array" then .data.sections |= map(select(.data.bizType? == "item")) else . end'
+# > 搜索结果信息流广告
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idlemtopsearch\.search(?:\/|\?|$) 'if (.data.resultList? | type) == "array" then .data.resultList |= map(select(.data.item.main.clickParam.args.biz_type? == "item")) else . end'
+# > 商品底部推荐信息流广告
+http-response-jq ^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.taobao\.idle\.item\.recommend(?:\/|\?|$) 'if (.data.cardList? | type) == "array" then .data.cardList |= map(select(.cardData.bizType? != "mamaAD")) else . end'
+
+[Map Local]
+# > ===== 高德地图 =====
+# > 高德地图_开屏请求@ddgksf2013
+^https?:\/\/.*\.amap\.com\/ws\/aos\/alimama\/splash_screen data-type=text data="" status-code=200
+
+# > 高德地图_首页底部信息流@ddgksf2013
+^https?:\/\/.*\.amap\.com\/v\d\/ai_rec\/ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+# > 高德地图_路线规划下方广告@ddgksf2013
+^https?:\/\/.*\.amap\.com\/ws\/faas\/amap-navigation\/card-service-route-plan\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+# > 高德地图_Tip请求@ddgksf2013
+^https?:\/\/.*\.amap\.com\/ws\/boss\/order_web\/\w{8}_information data-type=text data="" status-code=200
+
+# > 高德地图_搜索框scene@ddgksf2013
+^https?:\/\/.*\.amap\.com\/ws\/shield\/scene\/recommend data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+# > 高德地图_首页左上角gif@ddgksf2013
+^https?:\/\/.*\.amap\.com\/uploadimg\/\w+\.gif data-type=tiny-gif status-code=200
+
+# > 高德地图_左下天气@ddgksf2013
+^https?:\/\/.*\.amap\.com\/ws\/valueadded\/weather data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+# > ===== 滴滴出行 =====
+^https:\/\/res\.xiaojukeji\.com\/resapi\/activity\/getMulti\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/res\.xiaojukeji\.com\/resapi\/activity\/xpget data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/ct\.xiaojukeji\.com\/agent\/v3\/feeds data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/freight\.xiaojukeji\.com\/gateway data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/daijia\.kuaidadi\.com:443\/gateway data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/res\.xiaojukeji\.com\/resapi\/activity\/mget data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/conf\.diditaxi\.com\.cn\/homepage\/v\d\/other\/fast data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/conf\.diditaxi\.com\.cn\/homepage\/v\d\/other\/slow data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/conf\.diditaxi\.com\.cn\/dynamic\/conf data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/api\.udache\.com\/gulfstream\/watson\/v1\/bubble\/getBubble data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/res\.xiaojukeji\.com\/resapi\/activity\/getInsActivityV2 data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/conf\.diditaxi\.com\.cn\/ota\/na\/yuantu\/infoList data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+# > ===== 闲鱼 =====
+# > 开屏广告
+^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop.*splash\.ads data-type=text data="" status-code=200
+# > 开屏通用广告
+^https?:\/\/(g-)?acs\.m\.goofish\.com\/gw\/mtop\.idle\.ad\.expose(?:\/|\?|$) data-type=text data="" status-code=200
+
+[Script]
+# > ===== 12306 =====
+railway_12306 = type=http-request, pattern=^https?:\/\/ad\.12306\.cn\/ad\/ser\/getAdList, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/12306/12306.js, requires-body=true, max-size=-1, timeout=60
+
+# > ===== 高德地图 =====
+# > 高德地图_amdc处理@ddgksf2013
+amap_amdc = type=http-response, pattern=^http:\/\/amdc\.m\.taobao\.com, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/amap-ads/amdc.js, requires-body=true, max-size=-1, timeout=60
+
+# > 高德地图_响应净化（覆盖原 9 个接口）@ddgksf2013
+amap_response = type=http-response, pattern=^https?:\/\/.*\.amap\.com\/(?:ws\/message\/notice\/list|ws\/shield\/frogserver\/aocs\/updatable|ws\/shield\/search\/nearbyrec_smart|ws\/promotion-web\/resource|ws\/faas\/amap-navigation\/main-page|ws\/valueadded\/alimama\/splash_screen|ws\/msgbox\/pull|ws\/shield\/dsp\/profile\/index\/nodefaas|ws\/shield\/search\/new_hotword), script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/amap-ads/amap.js, requires-body=true, max-size=-1, timeout=60
+
+# > ===== 闲鱼 =====
+# > AMDC 处理
+goofish_amdc = type=http-response, pattern="^http:\/\/[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){1,4}(:\d+)?\/amdc\/mobileDispatch", script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/goofish-ads/amdc.js, requires-body=true, max-size=-1, timeout=5
+
+[MITM]
+hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com
