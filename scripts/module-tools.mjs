@@ -6,6 +6,7 @@ const ALLOWED_REMOTE_HOSTS = new Set([
   "raw.githubusercontent.com",
   "github.com",
   "gist.githubusercontent.com",
+  "kelee.one",
 ]);
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -71,6 +72,7 @@ export async function importModule({
   publishedModuleFile,
   upstreamModuleFile,
   conversion,
+  dependencies = [],
 }) {
   validateName(slug, "slug");
   validateName(category, "category");
@@ -83,6 +85,7 @@ export async function importModule({
   const moduleText = await fetchText(url, "module");
   const scriptUrls = discoverScriptUrls(moduleText);
   const mappings = createScriptMappings(scriptUrls);
+  const dependencyMappings = normalizeDependencyMappings(dependencies);
   const moduleExtension = detectModuleExtension(url);
   const upstreamDirectory = path.join(root, "upstream", category, slug);
   const upstreamModulePath = resolveManagedPath(
@@ -103,7 +106,7 @@ export async function importModule({
   await writeIfChanged(upstreamModulePath, moduleText);
 
   const downloadedScripts = [];
-  for (const mapping of mappings) {
+  for (const mapping of [...mappings, ...dependencyMappings]) {
     const source = await fetchText(mapping.url, `script ${mapping.fileName}`);
     downloadedScripts.push({ ...mapping, source });
     await writeIfChanged(
@@ -149,6 +152,9 @@ export async function importModule({
     upstreamFile: relativePath(root, upstreamModulePath),
     ...(conversion ? { conversion } : {}),
     scripts: mappings,
+    ...(dependencyMappings.length
+      ? { dependencies: dependencyMappings }
+      : {}),
   };
   const existingIndex = registry.findIndex(
     (item) => item.slug === slug && item.category === category,
@@ -168,7 +174,7 @@ export async function importModule({
   return {
     category,
     slug,
-    scriptCount: mappings.length,
+    scriptCount: mappings.length + dependencyMappings.length,
     optimizedFilesOverwritten: overwriteOptimized,
   };
 }
@@ -209,9 +215,15 @@ export function validateRemoteUrl(value, label) {
 async function fetchText(url, label) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
+  const parsedUrl = validateRemoteUrl(url, label);
   try {
     const response = await fetch(url, {
-      headers: { "user-agent": "Surge-Modules-Optimized/1.0" },
+      headers: {
+        "user-agent":
+          parsedUrl.hostname === "kelee.one"
+            ? "script-hub/1.0.0"
+            : "Surge-Modules-Optimized/1.0",
+      },
       redirect: "follow",
       signal: controller.signal,
     });
@@ -255,6 +267,29 @@ function createScriptMappings(urls) {
     }
     usedNames.add(uniqueName.toLowerCase());
     return { url, fileName: uniqueName };
+  });
+}
+
+function normalizeDependencyMappings(dependencies) {
+  const seenNames = new Set();
+  return dependencies.map(({ url, fileName }) => {
+    validateRemoteUrl(url, "dependency URL");
+    if (!fileName || path.posix.basename(fileName) !== fileName) {
+      throw new Error(`Invalid dependency file name: ${fileName}`);
+    }
+    const normalizedName = fileName.replace(/[^A-Za-z0-9._-]/gu, "_");
+    if (
+      normalizedName !== fileName ||
+      !normalizedName.toLowerCase().endsWith(".js")
+    ) {
+      throw new Error(`Invalid dependency file name: ${fileName}`);
+    }
+    const foldedName = normalizedName.toLowerCase();
+    if (seenNames.has(foldedName)) {
+      throw new Error(`Duplicate dependency file name: ${fileName}`);
+    }
+    seenNames.add(foldedName);
+    return { url, fileName: normalizedName };
   });
 }
 

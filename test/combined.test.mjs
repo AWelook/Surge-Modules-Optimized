@@ -87,13 +87,14 @@ test("every standalone functional rule remains in the combined module", () => {
 test("combined Script entries have unique names and unchanged execution options", () => {
   const scriptLines = functionalLines(combinedSections.get("Script"));
   const names = scriptLines.map((line) => line.slice(0, line.indexOf("=")).trim());
-  assert.equal(scriptLines.length, 4);
+  assert.equal(scriptLines.length, 5);
   assert.equal(new Set(names).size, names.length);
   assert.deepEqual(names, [
     "railway_12306",
     "amap_amdc",
     "amap_response",
     "goofish_amdc",
+    "pinduoduo_html",
   ]);
   for (const line of scriptLines) {
     assert.match(

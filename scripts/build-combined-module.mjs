@@ -34,6 +34,14 @@ export const COMBINED_SOURCES = [
     label: "闲鱼",
     file: "modules/ad/goofish-ads.sgmodule",
   },
+  {
+    id: "pinduoduo",
+    label: "拼多多",
+    file: "modules/ad/pinduoduo-ads.sgmodule",
+    scriptAliases: {
+      "移除扫码取件页面商品推荐及弹窗": "pinduoduo_html",
+    },
+  },
 ];
 
 const SECTION_ORDER = [
@@ -45,7 +53,7 @@ const SECTION_ORDER = [
 ];
 
 const HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行和闲鱼去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼和拼多多去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized
 `;

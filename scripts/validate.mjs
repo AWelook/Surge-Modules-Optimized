@@ -31,15 +31,15 @@ for (const scriptPath of publishedScripts) {
   }
 }
 
-const rawPrefixPattern =
-  /https:\/\/raw\.githubusercontent\.com\/AWelook\/Surge-Modules-Optimized\/(?:refs\/heads\/)?main\/([^\s,"']+\.js)/giu;
-for (const modulePath of publishedModules) {
-  const moduleText = await readFile(modulePath, "utf8");
-  for (const match of moduleText.matchAll(rawPrefixPattern)) {
+const publishedScriptUrlPattern =
+  /https:\/\/(?:raw\.githubusercontent\.com\/AWelook\/Surge-Modules-Optimized\/(?:refs\/heads\/)?main\/|cdn\.jsdelivr\.net\/gh\/AWelook\/Surge-Modules-Optimized@main\/)([^\s,"']+\.js)/giu;
+for (const publishedPath of [...publishedModules, ...publishedScripts]) {
+  const publishedText = await readFile(publishedPath, "utf8");
+  for (const match of publishedText.matchAll(publishedScriptUrlPattern)) {
     const localPath = path.join(root, ...decodeURI(match[1]).split("/"));
     if (!files.includes(localPath)) {
       failures.push(
-        `${relative(modulePath)}: referenced script is missing: ${match[1]}`,
+        `${relative(publishedPath)}: referenced script is missing: ${match[1]}`,
       );
     }
   }

@@ -43,6 +43,15 @@ test("rejects non-GitHub download hosts", () => {
   );
 });
 
+test("allows the explicitly supported Kelee upstream host", () => {
+  assert.doesNotThrow(() =>
+    validateRemoteUrl(
+      "https://kelee.one/Tool/Loon/Lpx/example.lpx",
+      "module URL",
+    ),
+  );
+});
+
 test("imports a module, preserves upstream files, and rewrites script URLs", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "surge-module-import-"));
   const originalFetch = globalThis.fetch;
@@ -167,6 +176,62 @@ test("preserves a Quantumult X snippet extension", async () => {
       ),
       "hostname = example.com\n",
     );
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("imports and tracks indirect JavaScript dependencies", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "surge-dependency-import-"));
+  const originalFetch = globalThis.fetch;
+  const moduleUrl =
+    "https://raw.githubusercontent.com/source/repo/main/example.sgmodule";
+  const scriptUrl =
+    "https://raw.githubusercontent.com/source/repo/main/main.js";
+  const dependencyUrl =
+    "https://raw.githubusercontent.com/source/repo/main/chunk.js";
+  globalThis.fetch = async (url) => {
+    const source = new Map([
+      [
+        moduleUrl,
+        `[Script]\nmain = type=http-response, script-path=${scriptUrl}\n`,
+      ],
+      [scriptUrl, `const chunk = "${dependencyUrl}";\n`],
+      [dependencyUrl, "const dependency = true;\n"],
+    ]).get(String(url));
+    return source === undefined
+      ? new Response("not found", { status: 404 })
+      : new Response(source, { status: 200 });
+  };
+
+  try {
+    const result = await importModule({
+      root,
+      url: moduleUrl,
+      slug: "example",
+      category: "ad",
+      repository: "AWelook/Surge-Modules-Optimized",
+      dependencies: [{ url: dependencyUrl, fileName: "chunk.js" }],
+    });
+    assert.equal(result.scriptCount, 2);
+    assert.equal(
+      await readFile(
+        path.join(root, "upstream/ad/example/chunk.js"),
+        "utf8",
+      ),
+      "const dependency = true;\n",
+    );
+    assert.equal(
+      await readFile(path.join(root, "scripts/ad/example/chunk.js"), "utf8"),
+      "const dependency = true;\n",
+    );
+    const registry = JSON.parse(
+      await readFile(path.join(root, "registry.json"), "utf8"),
+    );
+    assert.deepEqual(registry[0].dependencies, [
+      { url: dependencyUrl, fileName: "chunk.js" },
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
     await rm(root, { recursive: true, force: true });

@@ -28,6 +28,7 @@ for (const entry of registry) {
     publishedModuleFile: entry.moduleFile,
     upstreamModuleFile: entry.upstreamFile,
     conversion: entry.conversion,
+    dependencies: entry.dependencies,
   });
   console.log(
     `Synced ${result.category}/${result.slug}: ${result.scriptCount} script(s)`,

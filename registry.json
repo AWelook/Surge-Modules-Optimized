@@ -86,5 +86,31 @@
         "fileName": "amdc.js"
       }
     ]
+  },
+  {
+    "slug": "pinduoduo-ads",
+    "category": "ad",
+    "moduleUrl": "https://kelee.one/Tool/Loon/Lpx/PinDuoDuo_remove_ads.lpx",
+    "moduleFile": "modules/ad/pinduoduo-ads.sgmodule",
+    "upstreamFile": "upstream/ad/pinduoduo-ads/module.lpx",
+    "conversion": {
+      "provider": "Script Hub",
+      "version": "1.14.14",
+      "sourceType": "loon-plugin",
+      "targetType": "surge-module",
+      "snapshot": "converted/ad/pinduoduo-ads/script-hub.sgmodule"
+    },
+    "scripts": [
+      {
+        "url": "https://kelee.one/Resource/JavaScript/PinDuoDuo/PinDuoDuo_remove_ads.js",
+        "fileName": "PinDuoDuo_remove_ads.js"
+      }
+    ],
+    "dependencies": [
+      {
+        "url": "https://kelee.one/Resource/JavaScript/PinDuoDuo/9410-b8806e870a26db7d.js",
+        "fileName": "9410-b8806e870a26db7d.js"
+      }
+    ]
   }
 ]
