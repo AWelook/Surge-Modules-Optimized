@@ -1,0 +1,12 @@
+#!name=12306 去广告
+#!desc=移除 12306 广告接口返回内容
+#!author=@ddgksf2013
+
+[Rule]
+DOMAIN,ad.12306.cn,DIRECT
+
+[Script]
+12306 = type=http-request, pattern=^https?:\/\/ad\.12306\.cn\/ad\/ser\/getAdList, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/12306/12306.js, requires-body=true, max-size=-1, timeout=60
+
+[MITM]
+hostname = %APPEND% ad.12306.cn

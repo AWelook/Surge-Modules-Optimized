@@ -1,0 +1,12 @@
+#!name=local
+#!desc=local
+
+[Rule]
+DOMAIN,ad.12306.cn,DIRECT
+
+[Script]
+12306 = type=http-request, pattern=^https?:\/\/ad\.12306\.cn\/ad\/ser\/getAdList, script-path=https://github.com/ddgksf2013/Scripts/raw/master/12306.js, requires-body=true, max-size=-1, timeout=60
+
+[MITM]
+hostname = %APPEND% ad.12306.cn
+

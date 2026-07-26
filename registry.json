@@ -1,5 +1,26 @@
 [
   {
+    "slug": "12306",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/ddgksf2013/Scripts/master/12306.js",
+    "moduleFile": "modules/ad/12306.sgmodule",
+    "upstreamFile": "upstream/ad/12306/12306.js",
+    "conversion": {
+      "provider": "Script Hub",
+      "version": "1.14.14",
+      "input": "embedded-comment",
+      "sourceType": "qx-rewrite",
+      "targetType": "surge-module",
+      "snapshot": "converted/ad/12306/script-hub.sgmodule"
+    },
+    "scripts": [
+      {
+        "url": "https://github.com/ddgksf2013/Scripts/raw/master/12306.js",
+        "fileName": "12306.js"
+      }
+    ]
+  },
+  {
     "slug": "amap-ads",
     "category": "ad",
     "moduleUrl": "https://raw.githubusercontent.com/ddgksf2013/Rewrite/master/AdBlock/AmapAds.conf",
