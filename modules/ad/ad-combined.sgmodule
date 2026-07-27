@@ -1,5 +1,5 @@
 #!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多和 Reddit 去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多、Reddit 和微博轻享版去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized
 #!arguments=NSFW:"Nsfw",TRANSLATION:"http-request",TRANSLATION_VALUE:"enabled, seo, zh-hans"
@@ -119,6 +119,13 @@ http-response-jq ^https:\/\/api\.pinduoduo\.com\/api\/aristotle\/order_list_v4\?
 # > ===== Reddit =====
 http-response-jq ^https?:\/\/gql(-fed)?\.reddit\.com 'def reddit_walk: if type == "object" then if .__typename == "AdPost" then empty else map_values(reddit_walk) | .node as $node | if (($node | type) == "object" and (($node.adPayload | type) == "object" or (($node.cells | type) == "array" and ($node.cells | any(.__typename? == "AdMetadataCell" or .isAdPost? == true))))) then empty else (if .is{{{NSFW}}} == true then .is{{{NSFW}}} = false else . end) | (if .is{{{NSFW}}}MediaBlocked == true then .is{{{NSFW}}}MediaBlocked = false else . end) | (if .is{{{NSFW}}}ContentShown == false then .is{{{NSFW}}}ContentShown = true else . end) | (if (.commentsPageAds | type) == "array" then .commentsPageAds = [] else . end) end end elif type == "array" then map(reddit_walk) else . end; reddit_walk'
 
+# > ===== 微博轻享版 =====
+http-response-jq ^https?:\/\/api\.weibo\.cn\/2\/statuses\/unread_hot_timeline$ 'del(.ad, .advertises, .trends) | if .statuses then .statuses |= map(select(((.promotion.type == "ad") or (.mblogtypename | IN("广告", "廣告", "热推", "熱推"))) | not)) end'
+http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=get_coopen_ads& '.data |= . + {"ad_list":[],"pic_ad":[],"gdt_video_ad_ios":[],"display_ad":0,"ad_ios_id":null,"app_ad_ios_id":null,"reserve_ad_ios_id":"","reserve_app_ad_ios_id":"","ad_duration":604800,"ad_cd_interval":604800}'
+http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=trends& 'if .data.order then .data.order=["search_topic"] end'
+http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=search_topic& 'if .data.search_topic.cards[0].type == "searchtop" then del(.data.search_topic.cards[0]) end'
+http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=user_center& 'if .data.cards then .data.cards |= map((.items |= map(select(.type != "personal_vip"))) | select((.items | length) > 0)) end'
+
 [Header Rewrite]
 # > ===== Reddit =====
 {{{TRANSLATION}}} ^https:\/\/gql(-fed)?\.reddit\.com\/ header-del x-reddit-translations
@@ -222,6 +229,13 @@ http-response-jq ^https?:\/\/gql(-fed)?\.reddit\.com 'def reddit_walk: if type =
 
 ^https:\/\/api\.pinduoduo\.com\/api\/caterham\/v2\/query\/goods_detail_with_tags\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
 
+# > ===== 微博轻享版 =====
+^https?:\/\/api\.weibo\.cn\/2\/ad\/weibointl\? data-type=text data="{}" status-code=200
+
+^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=get_searching_info& data-type=text data="{"retcode":0,"info":"","data":{"expiration_time":"86400","cards":[{"tip":"搜索微博","word":""}]}}" header="Content-Type:text/html"
+
+^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?ct=feed&a=search_topic& data-type=text data="{"retcode":0,"info":"","data":[],"ext":{}}" header="Content-Type:text/html"
+
 [Script]
 # > ===== 12306 =====
 railway_12306 = type=http-request, pattern=^https?:\/\/ad\.12306\.cn\/ad\/ser\/getAdList, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/12306/12306.js, requires-body=true, max-size=-1, timeout=60
@@ -238,4 +252,4 @@ pinduoduo_html = type=http-response, pattern=^https:\/\/m\.pinduoduo\.net\/mdkd\
 combined_amdc = type=http-response, pattern="^http:\/\/(?:amdc\.m\.taobao\.com|[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+){1,4}(?::\d+)?\/amdc\/mobileDispatch)", script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/goofish-ads/amdc.js, requires-body=true, max-size=-1, timeout=60
 
 [MITM]
-hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, api.coolapk.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com, api.pinduoduo.com, m.pinduoduo.net, gql.reddit.com, gql-fed.reddit.com
+hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, api.coolapk.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com, api.pinduoduo.com, m.pinduoduo.net, gql.reddit.com, gql-fed.reddit.com, api.weibo.cn, weibointl.api.weibo.cn

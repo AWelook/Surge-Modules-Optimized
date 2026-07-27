@@ -230,6 +230,44 @@ test("Reddit handlers do not collide with another combined source", () => {
   );
 });
 
+test("Weibo International handlers do not collide with another combined source", () => {
+  const bodyUrls = [
+    "https://api.weibo.cn/2/statuses/unread_hot_timeline",
+    "https://weibointl.api.weibo.cn/portal.php?a=get_coopen_ads&",
+    "https://weibointl.api.weibo.cn/portal.php?a=trends&",
+    "https://weibointl.api.weibo.cn/portal.php?a=search_topic&",
+    "https://weibointl.api.weibo.cn/portal.php?a=user_center&",
+  ];
+  const bodyPatterns = functionalLines(
+    combinedSections.get("Body Rewrite"),
+  ).map((line) => line.split(/\s+/u)[1]);
+  for (const url of bodyUrls) {
+    assert.equal(
+      bodyPatterns.filter((pattern) => new RegExp(pattern, "u").test(url))
+        .length,
+      1,
+      `${url} must match exactly one combined Body Rewrite`,
+    );
+  }
+
+  const mapUrls = [
+    "https://api.weibo.cn/2/ad/weibointl?x=1",
+    "https://weibointl.api.weibo.cn/portal.php?a=get_searching_info&x=1",
+    "https://weibointl.api.weibo.cn/portal.php?ct=feed&a=search_topic&x=1",
+  ];
+  const mapPatterns = functionalLines(
+    combinedSections.get("Map Local"),
+  ).map((line) => line.split(/\s+/u)[0]);
+  for (const url of mapUrls) {
+    assert.equal(
+      mapPatterns.filter((pattern) => new RegExp(pattern, "u").test(url))
+        .length,
+      1,
+      `${url} must match exactly one combined Map Local`,
+    );
+  }
+});
+
 test("combined simple rules do not assign conflicting policies", () => {
   const policies = new Map();
   for (const line of functionalLines(combinedSections.get("Rule"))) {

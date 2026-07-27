@@ -120,5 +120,13 @@
     "moduleFile": "modules/ad/reddit-ads.sgmodule",
     "upstreamFile": "upstream/ad/reddit-ads/module.sgmodule",
     "scripts": []
+  },
+  {
+    "slug": "weibo-intl-ads",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/%E5%BE%AE%E5%8D%9A%E5%9B%BD%E9%99%85%E7%89%88%E5%8E%BB%E5%B9%BF%E5%91%8A.beta.sgmodule",
+    "moduleFile": "modules/ad/weibo-intl-ads.sgmodule",
+    "upstreamFile": "upstream/ad/weibo-intl-ads/module.sgmodule",
+    "scripts": []
   }
 ]
