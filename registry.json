@@ -128,5 +128,18 @@
     "moduleFile": "modules/ad/weibo-intl-ads.sgmodule",
     "upstreamFile": "upstream/ad/weibo-intl-ads/module.sgmodule",
     "scripts": []
+  },
+  {
+    "slug": "xiaohongshu-ads",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/%E5%B0%8F%E7%BA%A2%E4%B9%A6%E5%8E%BB%E5%B9%BF%E5%91%8A.beta.sgmodule",
+    "moduleFile": "modules/ad/xiaohongshu-ads.sgmodule",
+    "upstreamFile": "upstream/ad/xiaohongshu-ads/module.sgmodule",
+    "scripts": [
+      {
+        "url": "https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js",
+        "fileName": "RedPaper_remove_ads.js"
+      }
+    ]
   }
 ]

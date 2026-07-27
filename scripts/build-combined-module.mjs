@@ -55,6 +55,12 @@ export const COMBINED_SOURCES = [
     label: "微博轻享版",
     file: "modules/ad/weibo-intl-ads.sgmodule",
   },
+  {
+    id: "xiaohongshu",
+    label: "小红书",
+    file: "modules/ad/xiaohongshu-ads.sgmodule",
+    scriptAliases: { xiaohongshu_response: "xiaohongshu_response" },
+  },
 ];
 
 const SECTION_ORDER = [
@@ -68,7 +74,7 @@ const SECTION_ORDER = [
 ];
 
 const BASE_HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多、Reddit 和微博轻享版去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多、Reddit、微博轻享版和小红书去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized`;
 

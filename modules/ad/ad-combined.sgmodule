@@ -1,5 +1,5 @@
 #!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多、Reddit 和微博轻享版去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多、Reddit、微博轻享版和小红书去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized
 #!arguments=NSFW:"Nsfw",TRANSLATION:"http-request",TRANSLATION_VALUE:"enabled, seo, zh-hans"
@@ -54,6 +54,9 @@ DOMAIN,th-a.pinduoduo.com,REJECT
 DOMAIN,ta-a.pinduoduo.com,REJECT
 DOMAIN,meta.pinduoduo.com,REJECT
 DOMAIN,apm-a.pinduoduo.com,REJECT
+
+# > ===== 小红书 =====
+AND,((PROTOCOL,QUIC),(DOMAIN-SUFFIX,xiaohongshu.com,extended-matching)),REJECT
 
 [URL Rewrite]
 # > ===== 高德地图 =====
@@ -125,6 +128,12 @@ http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=get_coope
 http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=trends& 'if .data.order then .data.order=["search_topic"] end'
 http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=search_topic& 'if .data.search_topic.cards[0].type == "searchtop" then del(.data.search_topic.cards[0]) end'
 http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=user_center& 'if .data.cards then .data.cards |= map((.items |= map(select(.type != "personal_vip"))) | select((.items | length) > 0)) end'
+
+# > ===== 小红书 =====
+http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/banner_list$ 'if (getpath([]) | has("data")) then (setpath(["data"]; {})) else . end'
+http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/hot_list$ 'if (getpath(["data"]) | has("items")) then (setpath(["data","items"]; [])) else . end'
+http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/hint 'if (getpath(["data"]) | has("hint_words")) then (setpath(["data","hint_words"]; [])) else . end'
+http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\? 'if (getpath(["data"]) | has("queries")) then (setpath(["data","queries"]; [])) else . end | if (getpath(["data"]) | has("hint_word")) then (setpath(["data","hint_word"]; {})) else . end'
 
 [Header Rewrite]
 # > ===== Reddit =====
@@ -236,6 +245,17 @@ http-response-jq ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?a=user_cent
 
 ^https?:\/\/weibointl\.api\.weibo\.cn\/portal\.php\?ct=feed&a=search_topic& data-type=text data="{"retcode":0,"info":"","data":[],"ext":{}}" header="Content-Type:text/html"
 
+# > ===== 小红书 =====
+^https:\/\/ci\.xiaohongshu\.com\/system_config\/watermark data-type=tiny-gif status-code=200
+
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/surprisebox\/(?:get_style|open|submit_action) data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/www\.xiaohongshu\.com\/api\/marketing\/box\/trigger\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v2\/guide\/user_banner|v3\/note\/guide) data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+^https:\/\/www\.xiaohongshu\.com\/api\/sns\/(?:v1\/ads\/resource|v2\/hey\/\w+\/hey_gallery) data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
 [Script]
 # > ===== 12306 =====
 railway_12306 = type=http-request, pattern=^https?:\/\/ad\.12306\.cn\/ad\/ser\/getAdList, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/12306/12306.js, requires-body=true, max-size=-1, timeout=60
@@ -247,9 +267,13 @@ amap_response = type=http-response, pattern=^https?:\/\/.*\.amap\.com\/(?:ws\/me
 # > ===== 拼多多 =====
 pinduoduo_html = type=http-response, pattern=^https:\/\/m\.pinduoduo\.net\/mdkd\/package\?from_app_scan, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/pinduoduo-ads/PinDuoDuo_remove_ads.js, requires-body=true
 
+# > ===== 小红书 =====
+# > 原 12 条互不重叠的注册合并为一条，接口覆盖保持不变
+xiaohongshu_response = type=http-response, pattern="^https:\/\/(?:edith\.xiaohongshu\.com\/api\/sns\/(?:v1\/note\/(?:imagefeed|live_photo\/save)|v1\/system\/service\/ui\/config\?|v1\/system_service\/config\?|v2\/system_service\/splash_config|v2\/(?:note\/widgets|user\/followings\/followfeed)|v4\/followfeed\?|v5\/recommend\/user\/follow_recommend\?|(?:v1\/interaction\/comment\/video\/download|v5\/note\/comment\/list)|(?:v2\/note\/feed|v3\/note\/videofeed))|(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v6\/homefeed\?|(?:edith|so)\.xiaohongshu\.com\/api\/sns\/v10\/search\/notes\?|(?:edith|rec|www)\.xiaohongshu\.com\/api\/sns\/(?:v4\/note\/videofeed|v10\/note\/video\/save))", script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/xiaohongshu-ads/RedPaper_remove_ads.js, requires-body=true
+
 # > ===== 高德地图 / 闲鱼共享 =====
 # > 合并重叠的 AMDC 处理，避免同一响应执行两个脚本
 combined_amdc = type=http-response, pattern="^http:\/\/(?:amdc\.m\.taobao\.com|[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+){1,4}(?::\d+)?\/amdc\/mobileDispatch)", script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/goofish-ads/amdc.js, requires-body=true, max-size=-1, timeout=60
 
 [MITM]
-hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, api.coolapk.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com, api.pinduoduo.com, m.pinduoduo.net, gql.reddit.com, gql-fed.reddit.com, api.weibo.cn, weibointl.api.weibo.cn
+hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, api.coolapk.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com, api.pinduoduo.com, m.pinduoduo.net, gql.reddit.com, gql-fed.reddit.com, api.weibo.cn, weibointl.api.weibo.cn, ci.xiaohongshu.com, edith.xiaohongshu.com, rec.xiaohongshu.com, so.xiaohongshu.com, www.xiaohongshu.com

@@ -108,12 +108,13 @@ test("every standalone functional rule remains in the combined module", () => {
 test("combined Script entries have unique names and unchanged execution options", () => {
   const scriptLines = functionalLines(combinedSections.get("Script"));
   const names = scriptLines.map((line) => line.slice(0, line.indexOf("=")).trim());
-  assert.equal(scriptLines.length, 4);
+  assert.equal(scriptLines.length, 5);
   assert.equal(new Set(names).size, names.length);
   assert.deepEqual(names, [
     "railway_12306",
     "amap_response",
     "pinduoduo_html",
+    "xiaohongshu_response",
     "combined_amdc",
   ]);
   for (const line of scriptLines) {
@@ -266,6 +267,44 @@ test("Weibo International handlers do not collide with another combined source",
       `${url} must match exactly one combined Map Local`,
     );
   }
+});
+
+test("Xiaohongshu handlers do not collide with another combined source", () => {
+  const bodyUrls = [
+    "https://edith.xiaohongshu.com/api/sns/v1/search/banner_list",
+    "https://edith.xiaohongshu.com/api/sns/v1/search/hot_list",
+    "https://edith.xiaohongshu.com/api/sns/v4/search/hint",
+    "https://edith.xiaohongshu.com/api/sns/v4/search/trending?x=1",
+  ];
+  const bodyPatterns = functionalLines(
+    combinedSections.get("Body Rewrite"),
+  ).map((line) => line.split(/\s+/u)[1]);
+  for (const url of bodyUrls) {
+    assert.equal(
+      bodyPatterns.filter((pattern) => new RegExp(pattern, "u").test(url))
+        .length,
+      1,
+      `${url} must match exactly one combined Body Rewrite`,
+    );
+  }
+
+  const scriptUrl =
+    "https://rec.xiaohongshu.com/api/sns/v6/homefeed?x=1";
+  assert.equal(
+    scriptEntries(combinedSections.get("Script")).filter(({ pattern }) =>
+      new RegExp(pattern, "u").test(scriptUrl),
+    ).length,
+    1,
+  );
+
+  const mapUrl =
+    "https://www.xiaohongshu.com/api/marketing/box/trigger?x=1";
+  assert.equal(
+    functionalLines(combinedSections.get("Map Local")).filter((line) =>
+      new RegExp(line.split(/\s+/u)[0], "u").test(mapUrl),
+    ).length,
+    1,
+  );
 });
 
 test("combined simple rules do not assign conflicting policies", () => {
