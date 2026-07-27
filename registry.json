@@ -112,5 +112,13 @@
         "fileName": "9410-b8806e870a26db7d.js"
       }
     ]
+  },
+  {
+    "slug": "reddit-ads",
+    "category": "ad",
+    "moduleUrl": "https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Official/Reddit%20%E5%8E%BB%E5%B9%BF%E5%91%8A.sgmodule",
+    "moduleFile": "modules/ad/reddit-ads.sgmodule",
+    "upstreamFile": "upstream/ad/reddit-ads/module.sgmodule",
+    "scripts": []
   }
 ]

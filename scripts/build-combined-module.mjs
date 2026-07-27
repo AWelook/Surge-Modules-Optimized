@@ -44,21 +44,28 @@ export const COMBINED_SOURCES = [
       "移除扫码取件页面商品推荐及弹窗": "pinduoduo_html",
     },
   },
+  {
+    id: "reddit",
+    label: "Reddit",
+    file: "modules/ad/reddit-ads.sgmodule",
+    includeArgumentHeaders: true,
+  },
 ];
 
 const SECTION_ORDER = [
+  "General",
   "Rule",
   "URL Rewrite",
   "Body Rewrite",
+  "Header Rewrite",
   "Map Local",
   "Script",
 ];
 
-const HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼和拼多多去广告；请勿与对应单独版同时启用
+const BASE_HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多和 Reddit 去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
-#!homepage=https://github.com/AWelook/Surge-Modules-Optimized
-`;
+#!homepage=https://github.com/AWelook/Surge-Modules-Optimized`;
 
 const SHARED_AMDC_SCRIPT_BLOCK = String.raw`# > ===== 高德地图 / 闲鱼共享 =====
 # > 合并重叠的 AMDC 处理，避免同一响应执行两个脚本
@@ -70,9 +77,15 @@ export function buildCombinedModule(sourceTexts) {
     if (typeof text !== "string") {
       throw new Error(`Missing combined-module source: ${source.file}`);
     }
-    return { ...source, sections: parseSections(text) };
+    return { ...source, text, sections: parseSections(text) };
   });
 
+  const argumentHeaders = parsedSources.flatMap((source) =>
+    source.includeArgumentHeaders
+      ? extractArgumentHeaders(source.text, source.file)
+      : [],
+  );
+  const header = [BASE_HEADER, ...argumentHeaders].join("\n");
   const outputSections = [];
   for (const sectionName of SECTION_ORDER) {
     const blocks = [];
@@ -119,7 +132,7 @@ export function buildCombinedModule(sourceTexts) {
     outputSections.push(`[MITM]\nhostname = %APPEND% ${hostnames.join(", ")}`);
   }
 
-  return `${HEADER}\n${outputSections.join("\n\n")}\n`;
+  return `${header}\n\n${outputSections.join("\n\n")}\n`;
 }
 
 export function parseSections(text) {
@@ -169,6 +182,25 @@ export function extractMitmHostnames(content) {
     );
   }
   return hostnames;
+}
+
+function extractArgumentHeaders(text, sourceFile) {
+  const headers = text
+    .split(/\r?\n/u)
+    .filter(
+      (line) =>
+        line.startsWith("#!arguments=") ||
+        line.startsWith("#!arguments-desc="),
+    );
+  if (
+    headers.filter((line) => line.startsWith("#!arguments=")).length !== 1 ||
+    headers.filter((line) => line.startsWith("#!arguments-desc=")).length !== 1
+  ) {
+    throw new Error(
+      `${sourceFile} must contain one #!arguments and one #!arguments-desc header`,
+    );
+  }
+  return headers;
 }
 
 function namespaceScriptNames(content, source) {

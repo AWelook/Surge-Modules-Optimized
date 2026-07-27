@@ -51,6 +51,23 @@ test("combined module explicitly excludes Spotify and NetEase Music", () => {
   );
 });
 
+test("combined module preserves Reddit parameter controls", () => {
+  const redditText = sourceTexts.get("modules/ad/reddit-ads.sgmodule");
+  for (const prefix of ["#!arguments=", "#!arguments-desc="]) {
+    const expected = redditText
+      .split(/\r?\n/u)
+      .find((line) => line.startsWith(prefix));
+    assert.ok(expected, `Reddit source is missing ${prefix}`);
+    assert.equal(
+      combinedText
+        .split(/\r?\n/u)
+        .filter((line) => line.startsWith(prefix)).length,
+      1,
+    );
+    assert.match(combinedText, new RegExp(`^${escapeRegex(expected)}$`, "mu"));
+  }
+});
+
 test("every standalone functional rule remains in the combined module", () => {
   for (const source of COMBINED_SOURCES) {
     const sourceSections = parseSections(sourceTexts.get(source.file));
@@ -177,6 +194,40 @@ test("combined rewrite and script handlers have no exact duplicate patterns", ()
     scriptPatterns.length,
     "[Script] contains an exact duplicate pattern",
   );
+
+  const headerRewriteLines = functionalLines(
+    combinedSections.get("Header Rewrite"),
+  );
+  assert.equal(
+    new Set(headerRewriteLines).size,
+    headerRewriteLines.length,
+    "[Header Rewrite] contains an exact duplicate handler",
+  );
+});
+
+test("Reddit handlers do not collide with another combined source", () => {
+  const redditUrl = "https://gql.reddit.com/";
+  const bodyMatches = functionalLines(
+    combinedSections.get("Body Rewrite"),
+  ).filter((line) => {
+    const pattern = line.split(/\s+/u)[1];
+    return new RegExp(pattern, "u").test(redditUrl);
+  });
+  assert.equal(bodyMatches.length, 1);
+  assert.match(bodyMatches[0], /^http-response-jq /u);
+
+  const headerMatches = functionalLines(
+    combinedSections.get("Header Rewrite"),
+  ).filter((line) => {
+    const pattern = line.split(/\s+/u)[1];
+    return new RegExp(pattern, "u").test(redditUrl);
+  });
+  assert.equal(headerMatches.length, 2);
+  assert.match(headerMatches[0], / header-del x-reddit-translations$/u);
+  assert.match(
+    headerMatches[1],
+    / header-add x-reddit-translations "\{\{\{TRANSLATION_VALUE\}\}\}"$/u,
+  );
 });
 
 test("combined simple rules do not assign conflicting policies", () => {
@@ -247,4 +298,8 @@ function scriptEntries(content = "") {
 function countMatchingEntries(entries, url) {
   return entries.filter(({ pattern }) => new RegExp(pattern, "u").test(url))
     .length;
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
