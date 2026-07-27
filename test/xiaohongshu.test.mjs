@@ -112,6 +112,10 @@ test("only the two script hot paths differ from upstream", () => {
     .replace(
       '      obj.data = modDatas;\n    }\n    $persistentStore.write(JSON.stringify(newDatas), "redBookVideoFeed");',
       '    }\n    obj.data = modDatas;\n    $persistentStore.write(JSON.stringify(newDatas), "redBookVideoFeed");',
+    )
+    .replace(
+      "        for (const sub_comment of comment.sub_comments) {\n          if (comment?.comment_type === 3) {\n            comment.comment_type = 2;\n          }\n          if (comment?.media_source_type === 1) {\n            comment.media_source_type = 0;",
+      "        for (const sub_comment of comment.sub_comments) {\n          if (sub_comment?.comment_type === 3) {\n            sub_comment.comment_type = 2;\n          }\n          if (sub_comment?.media_source_type === 1) {\n            sub_comment.media_source_type = 0;",
     );
   assert.equal(optimizedScript, expected);
 });
@@ -178,6 +182,52 @@ test("video-feed loop assignment optimization is output-equivalent", () => {
   const upstream = runScript(upstreamScript, url, input);
   const optimized = runScript(optimizedScript, url, input);
   assert.deepEqual(optimized, upstream);
+});
+
+test("sub-comment media flags are normalized on the sub-comment itself", () => {
+  const input = {
+    data: {
+      comments: [
+        {
+          note_id: "note-1",
+          comment_type: 0,
+          media_source_type: 0,
+          sub_comments: [
+            {
+              id: "sub-1",
+              comment_type: 3,
+              media_source_type: 1,
+              pictures: [],
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const url =
+    "https://edith.xiaohongshu.com/api/sns/v5/note/comment/list";
+  const upstream = JSON.parse(
+    runScript(upstreamScript, url, input).output.body,
+  );
+  const optimized = JSON.parse(
+    runScript(optimizedScript, url, input).output.body,
+  );
+
+  assert.equal(upstream.data.comments[0].comment_type, 0);
+  assert.equal(upstream.data.comments[0].media_source_type, 0);
+  assert.equal(upstream.data.comments[0].sub_comments[0].comment_type, 3);
+  assert.equal(
+    upstream.data.comments[0].sub_comments[0].media_source_type,
+    1,
+  );
+
+  assert.equal(optimized.data.comments[0].comment_type, 0);
+  assert.equal(optimized.data.comments[0].media_source_type, 0);
+  assert.equal(optimized.data.comments[0].sub_comments[0].comment_type, 2);
+  assert.equal(
+    optimized.data.comments[0].sub_comments[0].media_source_type,
+    0,
+  );
 });
 
 test("unchanged script routes retain byte-equivalent responses and stores", () => {

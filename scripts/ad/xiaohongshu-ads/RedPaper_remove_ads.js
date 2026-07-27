@@ -272,11 +272,11 @@ if (url.includes("/v1/interaction/comment/video/download")) {
       }
       if (comment?.sub_comments?.length > 0) {
         for (const sub_comment of comment.sub_comments) {
-          if (comment?.comment_type === 3) {
-            comment.comment_type = 2;
+          if (sub_comment?.comment_type === 3) {
+            sub_comment.comment_type = 2;
           }
-          if (comment?.media_source_type === 1) {
-            comment.media_source_type = 0;
+          if (sub_comment?.media_source_type === 1) {
+            sub_comment.media_source_type = 0;
           }
           if (sub_comment?.pictures?.length > 0) {
             for (const picture of sub_comment.pictures) {
