@@ -66,6 +66,9 @@ test("keeps an exact Script Hub 1.14.14 Loon conversion baseline", () => {
 
   const entry = registry.find(({ slug }) => slug === "pinduoduo-ads");
   assert.ok(entry);
+  assert.deepEqual(entry.sync, {
+    retainExistingOnFailure: true,
+  });
   assert.deepEqual(entry.conversion, {
     provider: "Script Hub",
     version: "1.14.14",

@@ -42,4 +42,6 @@ test("upstream sync runs a digest-pinned Script Hub conversion", () => {
   );
   assert.match(syncWorkflow, /run: npm run convert/u);
   assert.match(syncWorkflow, /git add upstream converted registry\.json/u);
+  assert.match(syncWorkflow, /Report retained upstream snapshots/u);
+  assert.match(syncWorkflow, /upstream-sync-failure/u);
 });

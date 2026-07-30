@@ -49,12 +49,89 @@ jobs:
           exit 1
 
       - name: Download registered upstream files
-        run: npm run sync
+        shell: bash
+        run: |
+          npm run sync -- \
+            --failures-file "$RUNNER_TEMP/upstream-sync-failures.json"
 
       - name: Convert registered non-Surge sources
         env:
           SCRIPT_HUB_ENDPOINT: http://127.0.0.1:9100
         run: npm run convert
+
+      - name: Report retained upstream snapshots
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          label="upstream-sync-failure"
+          failures_file="${RUNNER_TEMP}/upstream-sync-failures.json"
+          gh label create "$label" \
+            --repo "$GITHUB_REPOSITORY" \
+            --color B60205 \
+            --description "上游源不可访问，当前保留已验证快照" \
+            --force
+
+          while IFS= read -r project; do
+            [[ -z "$project" ]] && continue
+            title="上游同步受阻：${project}"
+            issue_number="$(
+              gh issue list \
+                --repo "$GITHUB_REPOSITORY" \
+                --state open \
+                --label "$label" \
+                --limit 100 \
+                --json number,title \
+                --jq ".[] | select(.title == \"${title}\") | .number" |
+                head -n 1
+            )"
+            failure="$(
+              jq -c \
+                --arg project "$project" \
+                '.[] | select((.category + "/" + .slug) == $project)' \
+                "$failures_file"
+            )"
+
+            if [[ -n "$failure" ]]; then
+              body_file="${RUNNER_TEMP}/sync-failure-${project//\//-}.md"
+              {
+                echo "GitHub Runner 无法访问登记项目 \`${project}\` 的上游源。"
+                echo
+                echo "本次没有覆盖该项目，继续使用仓库内已验证的原始快照和转换快照；其他项目仍正常同步。"
+                echo
+                echo "错误：\`$(jq -r '.message' <<< "$failure")\`"
+                echo
+                echo "工作流：https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+              } > "$body_file"
+
+              if [[ -n "$issue_number" ]]; then
+                gh issue edit "$issue_number" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --body-file "$body_file"
+              else
+                gh issue create \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --title "$title" \
+                  --label "$label" \
+                  --body-file "$body_file"
+              fi
+            elif [[ -n "$issue_number" ]]; then
+              gh issue comment "$issue_number" \
+                --repo "$GITHUB_REPOSITORY" \
+                --body "上游访问已恢复，自动同步成功。"
+              gh issue close "$issue_number" --repo "$GITHUB_REPOSITORY"
+            fi
+          done < <(
+            node -e '
+              const registry = require("./registry.json");
+              for (const entry of registry) {
+                if (entry.sync?.retainExistingOnFailure) {
+                  console.log(`${entry.category}/${entry.slug}`);
+                }
+              }
+            '
+          )
 
       - name: Detect upstream changes
         id: changes

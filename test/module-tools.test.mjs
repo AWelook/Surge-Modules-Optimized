@@ -1,18 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   discoverScriptUrls,
-  fetchText,
   importModule,
   parseArguments,
   validateRemoteUrl,
@@ -52,52 +44,6 @@ test("allows the explicitly supported Kelee upstream host", () => {
       "module URL",
     ),
   );
-});
-
-test("retries Kelee HTTP 403 downloads with a constrained curl request", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "surge-curl-fallback-"));
-  const binDirectory = path.join(root, "bin");
-  const curlPath = path.join(binDirectory, "curl");
-  const originalFetch = globalThis.fetch;
-  const originalPath = process.env.PATH;
-  await mkdir(binDirectory, { recursive: true });
-  await writeFile(
-    curlPath,
-    `#!/usr/bin/env node
-const fs = require("node:fs");
-const args = process.argv.slice(2);
-const outputIndex = args.indexOf("--output");
-const userAgentIndex = args.indexOf("--user-agent");
-if (
-  outputIndex === -1 ||
-  userAgentIndex === -1 ||
-  args[userAgentIndex + 1] !== "script-hub/1.0.0"
-) {
-  process.exit(2);
-}
-fs.writeFileSync(args[outputIndex + 1], "curl fallback\\n");
-process.stdout.write(args.at(-1));
-`,
-    "utf8",
-  );
-  await chmod(curlPath, 0o755);
-
-  globalThis.fetch = async () => new Response("forbidden", { status: 403 });
-  process.env.PATH = `${binDirectory}${path.delimiter}${originalPath}`;
-
-  try {
-    assert.equal(
-      await fetchText(
-        "https://kelee.one/Tool/Loon/Lpx/example.lpx",
-        "module",
-      ),
-      "curl fallback\n",
-    );
-  } finally {
-    globalThis.fetch = originalFetch;
-    process.env.PATH = originalPath;
-    await rm(root, { recursive: true, force: true });
-  }
 });
 
 test("imports a module, preserves upstream files, and rewrites script URLs", async () => {
@@ -161,6 +107,42 @@ proto = type=http-response, script-path=${protoUrl}, requires-body=true
       /AWelook\/Surge-Modules-Optimized\/refs\/heads\/main\/scripts\/ad\/tieba\/tieba-json\.js/u,
     );
     assert.doesNotMatch(publishedModule, /source\/repo/u);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("does not partially overwrite snapshots when a script download fails", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "surge-atomic-import-"));
+  const originalFetch = globalThis.fetch;
+  const moduleUrl =
+    "https://raw.githubusercontent.com/source/repo/main/example.sgmodule";
+  const scriptUrl =
+    "https://raw.githubusercontent.com/source/repo/main/example.js";
+  const upstreamPath = path.join(root, "upstream/ad/example/module.sgmodule");
+  await mkdir(path.dirname(upstreamPath), { recursive: true });
+  await writeFile(upstreamPath, "#!name=existing\n", "utf8");
+  globalThis.fetch = async (url) =>
+    String(url) === moduleUrl
+      ? new Response(
+          `[Script]\nexample = type=http-response, script-path=${scriptUrl}\n`,
+          { status: 200 },
+        )
+      : new Response("forbidden", { status: 403 });
+
+  try {
+    await assert.rejects(
+      importModule({
+        root,
+        url: moduleUrl,
+        slug: "example",
+        category: "ad",
+        repository: "AWelook/Surge-Modules-Optimized",
+      }),
+      /HTTP 403/u,
+    );
+    assert.equal(await readFile(upstreamPath, "utf8"), "#!name=existing\n");
   } finally {
     globalThis.fetch = originalFetch;
     await rm(root, { recursive: true, force: true });
@@ -298,6 +280,7 @@ test("sync preserves registered converted module paths and metadata", async () =
     targetType: "surge-module",
     snapshot: "converted/ad/example/script-hub.sgmodule",
   };
+  const sync = { retainExistingOnFailure: true };
   globalThis.fetch = async () =>
     new Response("hostname = example.com\n", { status: 200 });
 
@@ -312,6 +295,7 @@ test("sync preserves registered converted module paths and metadata", async () =
       repository: "AWelook/Surge-Modules-Optimized",
       publishedModuleFile: "modules/ad/example.sgmodule",
       upstreamModuleFile: "upstream/ad/example/module.conf",
+      sync,
       conversion,
     });
     assert.equal(await readFile(optimizedPath, "utf8"), "#!name=optimized\n");
@@ -319,6 +303,7 @@ test("sync preserves registered converted module paths and metadata", async () =
       await readFile(path.join(root, "registry.json"), "utf8"),
     );
     assert.equal(registry[0].moduleFile, "modules/ad/example.sgmodule");
+    assert.deepEqual(registry[0].sync, sync);
     assert.deepEqual(registry[0].conversion, conversion);
   } finally {
     globalThis.fetch = originalFetch;
