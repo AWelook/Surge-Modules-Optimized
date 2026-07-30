@@ -5,6 +5,7 @@
   "scripts": {
     "build:combined": "node scripts/build-combined-module.mjs",
     "check:combined": "node scripts/build-combined-module.mjs --check",
+    "convert": "node scripts/convert-upstreams.mjs",
     "import": "node scripts/import-module.mjs",
     "sync": "node scripts/sync-upstreams.mjs",
     "validate": "node scripts/validate.mjs",

@@ -98,7 +98,10 @@
       "version": "1.14.14",
       "sourceType": "loon-plugin",
       "targetType": "surge-module",
-      "snapshot": "converted/ad/pinduoduo-ads/script-hub.sgmodule"
+      "snapshot": "converted/ad/pinduoduo-ads/script-hub.sgmodule",
+      "automation": {
+        "jqEnabled": true
+      }
     },
     "scripts": [
       {

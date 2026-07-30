@@ -72,6 +72,9 @@ test("keeps an exact Script Hub 1.14.14 Loon conversion baseline", () => {
     sourceType: "loon-plugin",
     targetType: "surge-module",
     snapshot: "converted/ad/pinduoduo-ads/script-hub.sgmodule",
+    automation: {
+      jqEnabled: true,
+    },
   });
   assert.deepEqual(entry.dependencies, [
     {

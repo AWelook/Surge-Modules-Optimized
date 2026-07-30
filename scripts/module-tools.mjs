@@ -1,5 +1,14 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 
 const MAX_REMOTE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_REMOTE_HOSTS = new Set([
@@ -17,6 +26,7 @@ const SUPPORTED_MODULE_EXTENSIONS = new Set([
   ".sgmodule",
   ".snippet",
 ]);
+const execFileAsync = promisify(execFile);
 
 export function parseArguments(argv) {
   const result = Object.create(null);
@@ -212,7 +222,7 @@ export function validateRemoteUrl(value, label) {
   return parsed;
 }
 
-async function fetchText(url, label) {
+export async function fetchText(url, label) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
   const parsedUrl = validateRemoteUrl(url, label);
@@ -229,6 +239,12 @@ async function fetchText(url, label) {
     });
     validateRemoteUrl(response.url || url, `${label} redirect target`);
     if (!response.ok) {
+      if (response.status === 403 && parsedUrl.hostname === "kelee.one") {
+        console.warn(
+          `Unable to download ${label} with fetch (HTTP 403); retrying with curl`,
+        );
+        return await fetchTextWithCurl(url, label);
+      }
       throw new Error(`Unable to download ${label}: HTTP ${response.status}`);
     }
     const contentLength = Number(response.headers.get("content-length") ?? 0);
@@ -242,6 +258,60 @@ async function fetchText(url, label) {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function fetchTextWithCurl(url, label) {
+  const temporaryDirectory = await mkdtemp(
+    path.join(tmpdir(), "surge-module-download-"),
+  );
+  const outputPath = path.join(temporaryDirectory, "response");
+  try {
+    const { stdout } = await execFileAsync(
+      "curl",
+      [
+        "--fail",
+        "--location",
+        "--silent",
+        "--show-error",
+        "--max-time",
+        "30",
+        "--max-redirs",
+        "5",
+        "--max-filesize",
+        String(MAX_REMOTE_BYTES),
+        "--proto",
+        "=https",
+        "--proto-redir",
+        "=https",
+        "--user-agent",
+        "script-hub/1.0.0",
+        "--output",
+        outputPath,
+        "--write-out",
+        "%{url_effective}",
+        url,
+      ],
+      {
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024,
+      },
+    );
+    validateRemoteUrl(stdout.trim() || url, `${label} redirect target`);
+    const bytes = await readFile(outputPath);
+    if (bytes.byteLength > MAX_REMOTE_BYTES) {
+      throw new Error(`${label} exceeds the ${MAX_REMOTE_BYTES}-byte limit`);
+    }
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch (error) {
+    if (error?.message?.includes(`${label} exceeds`)) {
+      throw error;
+    }
+    throw new Error(`Unable to download ${label} with curl`, {
+      cause: error,
+    });
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true });
   }
 }
 

@@ -34,3 +34,12 @@ test("manual imports rebuild the combined module before validation", () => {
 test("upstream issues remind the optimizer to rebuild combined sources", () => {
   assert.match(syncWorkflow, /若属于合集来源则重建合集/u);
 });
+
+test("upstream sync runs a digest-pinned Script Hub conversion", () => {
+  assert.match(
+    syncWorkflow,
+    /xream\/script-hub@sha256:[a-f0-9]{64}/u,
+  );
+  assert.match(syncWorkflow, /run: npm run convert/u);
+  assert.match(syncWorkflow, /git add upstream converted registry\.json/u);
+});

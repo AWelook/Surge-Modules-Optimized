@@ -16,14 +16,45 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      SCRIPT_HUB_IMAGE: xream/script-hub@sha256:c55180dd41c07567906f17953587c25b61b427b2c5cc6b955721677fd615f470
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 24
 
+      - name: Start pinned Script Hub service
+        shell: bash
+        run: |
+          docker run \
+            --detach \
+            --rm \
+            --name script-hub \
+            --publish 127.0.0.1:9100:9100 \
+            --env HOST=0.0.0.0 \
+            --env PORT=9100 \
+            "$SCRIPT_HUB_IMAGE"
+
+          for attempt in {1..30}; do
+            if curl --fail --silent --output /dev/null \
+              http://127.0.0.1:9100/; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs script-hub
+          echo "Script Hub did not become ready."
+          exit 1
+
       - name: Download registered upstream files
         run: npm run sync
+
+      - name: Convert registered non-Surge sources
+        env:
+          SCRIPT_HUB_ENDPOINT: http://127.0.0.1:9100
+        run: npm run convert
 
       - name: Detect upstream changes
         id: changes
@@ -42,7 +73,7 @@ jobs:
               git diff --stat
             } > "$change_file"
             git status --porcelain |
-              awk '$2 ~ /^upstream\// { split($2, path, "/"); print path[2] "/" path[3] }' |
+              awk '$2 ~ /^(upstream|converted)\// { split($2, path, "/"); print path[2] "/" path[3] }' |
               sort -u > "$projects_file"
             if [[ ! -s "$projects_file" ]]; then
               node -e '
@@ -65,7 +96,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add upstream registry.json
+          git add upstream converted registry.json
           git commit -m "Sync upstream snapshots"
           git push
 
@@ -93,6 +124,7 @@ jobs:
               echo
               echo '```text'
               grep -F "upstream/${project}/" "${RUNNER_TEMP}/upstream-changes.txt" || true
+              grep -F "converted/${project}/" "${RUNNER_TEMP}/upstream-changes.txt" || true
               grep -F "registry.json" "${RUNNER_TEMP}/upstream-changes.txt" || true
               echo '```'
               echo
@@ -130,3 +162,11 @@ jobs:
         run: |
           echo "Published-file validation failed; the upstream snapshot and optimization task were still recorded."
           exit 1
+
+      - name: Report Script Hub logs
+        if: failure()
+        run: docker logs script-hub || true
+
+      - name: Stop Script Hub service
+        if: always()
+        run: docker stop script-hub || true
