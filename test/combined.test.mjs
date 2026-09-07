@@ -40,14 +40,14 @@ test("every combined source is a registered published module", () => {
   }
 });
 
-test("combined module explicitly excludes Spotify and NetEase Music", () => {
+test("combined module explicitly excludes Spotify, NetEase Music, and Pinduoduo", () => {
   assert.match(combinedText, /^#!name=去广告合集（不含 Spotify 与网易云）$/mu);
   assert.doesNotMatch(
     combinedText
       .split("\n")
       .filter((line) => !line.startsWith("#!"))
       .join("\n"),
-    /spotify|spclient|netease|music\.163|网易云/iu,
+    /spotify|spclient|netease|music\.163|网易云|pinduoduo|拼多多/iu,
   );
 });
 
@@ -108,12 +108,11 @@ test("every standalone functional rule remains in the combined module", () => {
 test("combined Script entries have unique names and unchanged execution options", () => {
   const scriptLines = functionalLines(combinedSections.get("Script"));
   const names = scriptLines.map((line) => line.slice(0, line.indexOf("=")).trim());
-  assert.equal(scriptLines.length, 5);
+  assert.equal(scriptLines.length, 4);
   assert.equal(new Set(names).size, names.length);
   assert.deepEqual(names, [
     "railway_12306",
     "amap_response",
-    "pinduoduo_html",
     "xiaohongshu_response",
     "combined_amdc",
   ]);

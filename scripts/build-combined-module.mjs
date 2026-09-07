@@ -37,14 +37,6 @@ export const COMBINED_SOURCES = [
     excludedScriptNames: ["amdc"],
   },
   {
-    id: "pinduoduo",
-    label: "拼多多",
-    file: "modules/ad/pinduoduo-ads.sgmodule",
-    scriptAliases: {
-      "移除扫码取件页面商品推荐及弹窗": "pinduoduo_html",
-    },
-  },
-  {
     id: "reddit",
     label: "Reddit",
     file: "modules/ad/reddit-ads.sgmodule",
@@ -74,7 +66,7 @@ const SECTION_ORDER = [
 ];
 
 const BASE_HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、拼多多、Reddit、微博轻享版和小红书去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版和小红书去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized`;
 
