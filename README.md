@@ -29,7 +29,9 @@ registry.json
 
 ## 去广告合集
 
-`modules/ad/ad-combined.sgmodule` 合并了 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版和小红书去广告，不包含 Spotify、网易云与拼多多。拼多多及其他原有单独模块全部保留，但使用合集时不要同时启用合集成员的单独版，以免同一请求被重复处理。
+`modules/ad/ad-combined.sgmodule` 合并了 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版、小红书和知乎去广告，不包含 Spotify、网易云与拼多多。拼多多及其他原有单独模块全部保留，但使用合集时不要同时启用合集成员的单独版，以免同一请求被重复处理。
+
+知乎来源为可莉的 `Zhihu_remove_ads.lpx`，已用 Script Hub Beta 转为 Surge 原生 `[Map Local]` 和 `[Body Rewrite]`，并合并同一接口的重复 jq 遍历，无远程 JavaScript 依赖。保留开屏、信息流、回答页广告过滤、搜索与个人页精简，以及 HTTPDNS/QUIC 配置清理；需要开启 MITM、信任证书并使用支持 jq Body Rewrite 的 Surge 版本。单独版为 `modules/ad/zhihu-ads.sgmodule`，上游及未经优化的转换快照分别保存在 `upstream/ad/zhihu-ads/` 和 `converted/ad/zhihu-ads/`。
 
 合集由各单独版自动生成。修改任一来源后运行：
 

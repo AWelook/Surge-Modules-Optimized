@@ -211,7 +211,7 @@ test("Reddit handlers do not collide with another combined source", () => {
     combinedSections.get("Body Rewrite"),
   ).filter((line) => {
     const pattern = line.split(/\s+/u)[1];
-    return new RegExp(pattern, "u").test(redditUrl);
+    return surgeRegex(pattern).test(redditUrl);
   });
   assert.equal(bodyMatches.length, 1);
   assert.match(bodyMatches[0], /^http-response-jq /u);
@@ -220,7 +220,7 @@ test("Reddit handlers do not collide with another combined source", () => {
     combinedSections.get("Header Rewrite"),
   ).filter((line) => {
     const pattern = line.split(/\s+/u)[1];
-    return new RegExp(pattern, "u").test(redditUrl);
+    return surgeRegex(pattern).test(redditUrl);
   });
   assert.equal(headerMatches.length, 2);
   assert.match(headerMatches[0], / header-del x-reddit-translations$/u);
@@ -243,7 +243,7 @@ test("Weibo International handlers do not collide with another combined source",
   ).map((line) => line.split(/\s+/u)[1]);
   for (const url of bodyUrls) {
     assert.equal(
-      bodyPatterns.filter((pattern) => new RegExp(pattern, "u").test(url))
+      bodyPatterns.filter((pattern) => surgeRegex(pattern).test(url))
         .length,
       1,
       `${url} must match exactly one combined Body Rewrite`,
@@ -260,7 +260,7 @@ test("Weibo International handlers do not collide with another combined source",
   ).map((line) => line.split(/\s+/u)[0]);
   for (const url of mapUrls) {
     assert.equal(
-      mapPatterns.filter((pattern) => new RegExp(pattern, "u").test(url))
+      mapPatterns.filter((pattern) => surgeRegex(pattern).test(url))
         .length,
       1,
       `${url} must match exactly one combined Map Local`,
@@ -280,7 +280,7 @@ test("Xiaohongshu handlers do not collide with another combined source", () => {
   ).map((line) => line.split(/\s+/u)[1]);
   for (const url of bodyUrls) {
     assert.equal(
-      bodyPatterns.filter((pattern) => new RegExp(pattern, "u").test(url))
+      bodyPatterns.filter((pattern) => surgeRegex(pattern).test(url))
         .length,
       1,
       `${url} must match exactly one combined Body Rewrite`,
@@ -291,7 +291,7 @@ test("Xiaohongshu handlers do not collide with another combined source", () => {
     "https://rec.xiaohongshu.com/api/sns/v6/homefeed?x=1";
   assert.equal(
     scriptEntries(combinedSections.get("Script")).filter(({ pattern }) =>
-      new RegExp(pattern, "u").test(scriptUrl),
+      surgeRegex(pattern).test(scriptUrl),
     ).length,
     1,
   );
@@ -300,7 +300,7 @@ test("Xiaohongshu handlers do not collide with another combined source", () => {
     "https://www.xiaohongshu.com/api/marketing/box/trigger?x=1";
   assert.equal(
     functionalLines(combinedSections.get("Map Local")).filter((line) =>
-      new RegExp(line.split(/\s+/u)[0], "u").test(mapUrl),
+      surgeRegex(line.split(/\s+/u)[0]).test(mapUrl),
     ).length,
     1,
   );
@@ -372,10 +372,16 @@ function scriptEntries(content = "") {
 }
 
 function countMatchingEntries(entries, url) {
-  return entries.filter(({ pattern }) => new RegExp(pattern, "u").test(url))
+  return entries.filter(({ pattern }) => surgeRegex(pattern).test(url))
     .length;
 }
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function surgeRegex(pattern) {
+  return pattern.startsWith("(?i)")
+    ? new RegExp(pattern.slice(4), "iu")
+    : new RegExp(pattern, "u");
 }

@@ -150,5 +150,25 @@
         "fileName": "RedPaper_remove_ads.js"
       }
     ]
+  },
+  {
+    "slug": "zhihu-ads",
+    "category": "ad",
+    "moduleUrl": "https://kelee.one/Tool/Loon/Lpx/Zhihu_remove_ads.lpx",
+    "moduleFile": "modules/ad/zhihu-ads.sgmodule",
+    "upstreamFile": "upstream/ad/zhihu-ads/module.lpx",
+    "sync": {
+      "retainExistingOnFailure": true
+    },
+    "conversion": {
+      "provider": "Script Hub",
+      "version": "beta",
+      "revision": "7162288ce04b37a7922f3da3c1a6021d6d81dbc0",
+      "parser": "Rewrite-Parser.beta.js",
+      "sourceType": "loon-plugin",
+      "targetType": "surge-module",
+      "snapshot": "converted/ad/zhihu-ads/script-hub.sgmodule"
+    },
+    "scripts": []
   }
 ]

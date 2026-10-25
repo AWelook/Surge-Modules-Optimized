@@ -1,5 +1,5 @@
 #!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版和小红书去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版、小红书和知乎去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized
 #!arguments=NSFW:"Nsfw",TRANSLATION:"http-request",TRANSLATION_VALUE:"enabled, seo, zh-hans"
@@ -108,6 +108,21 @@ http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/hot_l
 http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/hint 'if (getpath(["data"]) | has("hint_words")) then (setpath(["data","hint_words"]; [])) else . end'
 http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\? 'if (getpath(["data"]) | has("queries")) then (setpath(["data","queries"]; [])) else . end | if (getpath(["data"]) | has("hint_word")) then (setpath(["data","hint_word"]; {})) else . end'
 
+# > ===== 知乎 =====
+http-response-jq (?i)^https:\/\/m-cloud\.zhihu\.com\/api\/cloud\/zhihu\/config\/all\? 'def drop_keys: {"km_httpdns_new_config_tars":true,"preFetchHttpDns":true,"httpdns_detector_use_concurrent":true,"httpdns_use_memory_cache":true,"httpdns_new_config_tars":true,"coreNetworkConf_useTars":true,"km_coreNetworkConf_useTars":true,"sugarQuicConfig":true,"quic_dns_detect_enable":true,"quicMixAB":true,"quic_downgrade_enable":true,"quic_priority_strategy":true,"quic_check_health_enable":true,"tquic_configuration":true,"networkExprimentList":true,"tars_ab_list":true,"zaSetExtraRequestHeader":true}; .data.configs |= map(select((drop_keys[.configKey] // false) | not) | if (.configValue | type) == "object" then del(.configValue.delayHttpdns, .configValue.dnsParser, .configValue.HTTPDNS) else . end)'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/root\/tab\/v\d(?:\?.+)?$ '.tab_list |= map(select(.tab_type == "follow" or .tab_type == "recommend" or .tab_type == "hot" or .tab_type == "ring_tab"))'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/topstory\/recommend\? '(.data |= map(select(.type == "ComponentCard"))) | (.data[]?.children |= (if type == "array" then map(select(.id != "ring")) else . end))'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/questions\/\d+\/feeds\? 'delpaths([["ad_info"]])'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/comment_v\d\/(answers|pins)\/\d+\/root_comment\? 'delpaths([["atmosphere_voting_config"]])'
+http-response-jq (?i)^https:\/\/(api|page-info)(?:\.zhihu)?\.com\/answers\/v\d\/\d+(?:\?.*)?$ '(delpaths([["third_business"]])) | (delpaths([["float_search_word"]])) | (.structured_content.segments |= map(select(.type != "card")))'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/(articles|answers|pins)\/v\d\/\d+\? '(delpaths([["third_business"]])) | (delpaths([["ring_info"]])) | (delpaths([["interaction_bar_plugins"]]))'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/comment_v\d\/answers\/\d+\/list-headers$ 'delpaths([["continuous_consumption_module"]])'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/podcasts\/hub\/v\d$ 'delpaths([["banners"]])'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/search\/recommend_query\/v\d\? '.recommend_queries.queries |= map(select(.type == "normal"))'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/search_v\d\? 'delpaths([["pendant"]])'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/search\/tabs\? '.data |= map(select(.t | IN("general", "ai_zhida", "recent", "people", "zvideo", "ring", "topic", "podcast", "column", "pin", "favlist")))'
+http-response-jq (?i)^https:\/\/api\.zhihu\.com\/people\/self$ '(delpaths([["vip_info","entrance_new","right_button"]])) | (delpaths([["vip_info","entrance_v2"]]))'
+
 [Header Rewrite]
 # > ===== Reddit =====
 {{{TRANSLATION}}} ^https:\/\/gql(-fed)?\.reddit\.com\/ header-del x-reddit-translations
@@ -188,6 +203,37 @@ http-response-jq ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trend
 
 ^https:\/\/www\.xiaohongshu\.com\/api\/sns\/(?:v1\/ads\/resource|v2\/hey\/\w+\/hey_gallery) data-type=text data="{}" status-code=200 header="Content-Type:application/json"
 
+# > ===== 知乎 =====
+(?i)^https:\/\/api\.zhihu\.com\/ad-style-service\/request$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/commercial_api\/ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/commercial_api\/banners_v\d\/app_float_corner\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/next-render\?(?:[^#?&]+&)*id=\d+&type=answer data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/commercial_api\/answer\/\d+\/bottom-v\d$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/related_recommend\/feed\/waterfall\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/search\/preset_words\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/search\/related_queries\/question\/\d+$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/zhida\.zhihu\.com\/ai_ingress\/knowledge\/square\/categories\/feeds\?(?:[^#?&]+&)*categoryId=1%7D$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/zhida\.zhihu\.com\/ai_ingress\/ai_chat\/guidance$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/content-distribution-core\/bubble\/common\/show$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/www\.zhihu\.com\/api\/v\d\/members\/homepage_card$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/people\/homepage_entry_v\d$ data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/kvip\/right\/my_card\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
+(?i)^https:\/\/api\.zhihu\.com\/unlimited\/go\/my_card\/v\d\? data-type=text data="{}" status-code=200 header="Content-Type:application/json"
+
 [Script]
 # > ===== 12306 =====
 railway_12306 = type=http-request, pattern=^https?:\/\/ad\.12306\.cn\/ad\/ser\/getAdList, script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/12306/12306.js, requires-body=true, max-size=-1, timeout=60
@@ -205,4 +251,4 @@ xiaohongshu_response = type=http-response, pattern="^https:\/\/(?:edith\.xiaohon
 combined_amdc = type=http-response, pattern="^http:\/\/(?:amdc\.m\.taobao\.com|[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+){1,4}(?::\d+)?\/amdc\/mobileDispatch)", script-path=https://raw.githubusercontent.com/AWelook/Surge-Modules-Optimized/refs/heads/main/scripts/ad/goofish-ads/amdc.js, requires-body=true, max-size=-1, timeout=60
 
 [MITM]
-hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, api.coolapk.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com, gql.reddit.com, gql-fed.reddit.com, api.weibo.cn, weibointl.api.weibo.cn, ci.xiaohongshu.com, edith.xiaohongshu.com, rec.xiaohongshu.com, so.xiaohongshu.com, www.xiaohongshu.com
+hostname = %APPEND% ad.12306.cn, m5.amap.com, m5-zb.amap.com, center.amap.com, amap-aos-info-nogw.amap.com, ai.amap.com, api.coolapk.com, 117.51.168.*, 113.46.225.*, common.diditaxi.com.cn, freight.xiaojukeji.com, daijia.kuaidadi.com, 162.14.157.*, ct.xiaojukeji.com, res.xiaojukeji.com, conf.diditaxi.com.cn, api.udache.com, 123.207.209.*, 112.53.55.225, 120.241.142.*, 120.241.143.*, 116.85.*, 139.199.240.84, mapi.xiaojukeji.com, manhattan.webapp.xiaojukeji.com, ddpay.xiaojukeji.com, acs.m.goofish.com, g-acs.m.goofish.com, gql.reddit.com, gql-fed.reddit.com, api.weibo.cn, weibointl.api.weibo.cn, ci.xiaohongshu.com, edith.xiaohongshu.com, rec.xiaohongshu.com, so.xiaohongshu.com, www.xiaohongshu.com, m-cloud.zhihu.com, api.zhihu.com, www.zhihu.com, page-info.zhihu.com, zhida.zhihu.com

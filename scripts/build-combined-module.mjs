@@ -53,6 +53,11 @@ export const COMBINED_SOURCES = [
     file: "modules/ad/xiaohongshu-ads.sgmodule",
     scriptAliases: { xiaohongshu_response: "xiaohongshu_response" },
   },
+  {
+    id: "zhihu",
+    label: "知乎",
+    file: "modules/ad/zhihu-ads.sgmodule",
+  },
 ];
 
 const SECTION_ORDER = [
@@ -66,7 +71,7 @@ const SECTION_ORDER = [
 ];
 
 const BASE_HEADER = `#!name=去广告合集（不含 Spotify 与网易云）
-#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版和小红书去广告；请勿与对应单独版同时启用
+#!desc=合并 12306、高德地图、酷安、滴滴出行、闲鱼、Reddit、微博轻享版、小红书和知乎去广告；请勿与对应单独版同时启用
 #!author=原规则作者与 AWelook
 #!homepage=https://github.com/AWelook/Surge-Modules-Optimized`;
 
